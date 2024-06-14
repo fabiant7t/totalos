@@ -52,5 +52,21 @@ func main() {
 		}
 		*image = url
 	}
-	fmt.Println(*image)
+
+	if err := services.SoftwareRAIDNotExists(srv, nil); err != nil {
+		log.Fatal(err)
+	}
+	if err := services.WipeFileSystemSignatures(srv, nil); err != nil {
+		log.Fatal(err)
+	}
+	disk, err := services.NominateInstallDisk(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := services.InstallImage(srv, *image, disk, nil); err != nil {
+		log.Fatal(err)
+	}
+	services.Reboot(srv, nil)
+	fmt.Printf("Installed %s on disk %s!\n", *image, disk)
+	fmt.Printf("Your server %s is now rebooting to Talos maintenance mode!\n", *ip)
 }
