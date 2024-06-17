@@ -11,6 +11,10 @@ import (
 	"github.com/fabiant7t/totalos/internal/totalos/services"
 )
 
+var (
+	version = "dev" // default version, redacted when building
+)
+
 func main() {
 	ip := flag.String("ip", "", "IP of the server")
 	port := flag.Uint("port", 22, "SSH port of the server")
@@ -18,8 +22,14 @@ func main() {
 	password := flag.String("password", "", "password of the user (optional)")
 	keyPath := flag.String("key", "", "path to the private key (optional)")
 	image := flag.String("image", "", "URL to ISO image (optional)")
+	versionFlag := flag.Bool("version", false, "prints the version")
 
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
 
 	if *ip == "" {
 		fmt.Println("Error: --ip flag is required")
