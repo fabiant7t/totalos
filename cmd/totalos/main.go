@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/fabiant7t/totalos/internal/totalos"
 	"github.com/fabiant7t/totalos/internal/totalos/services"
@@ -14,6 +16,17 @@ import (
 var (
 	version = "dev" // default version, redacted when building
 )
+
+type Report struct {
+	Image              string `json:"image"`
+	IP                 string `json:"ip"`
+	Netmask            string `json:"netmask"`
+	Gateway            string `json:"gateway"`
+	IPKernelParameters string `json:"ip_kernel_parameters"`
+	Disk               string `json:"disk"`
+	Hostname           string `json:"hostname"`
+	Status             string `json:"status"`
+}
 
 func main() {
 	ip := flag.String("ip", "", "IP of the server")
@@ -62,7 +75,18 @@ func main() {
 		}
 		*image = url
 	}
-
+	ipv4, err := services.IPv4(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ipv4nm, err := services.IPv4Netmask(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ipv4gw, err := services.IPv4Gateway(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := services.SoftwareRAIDNotExists(srv, nil); err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +100,22 @@ func main() {
 	if err := services.InstallImage(srv, *image, disk, nil); err != nil {
 		log.Fatal(err)
 	}
+	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
+	report := Report{
+		Image:              *image,
+		IP:                 ipv4.String(),
+		Netmask:            ipv4nm.String(),
+		Gateway:            ipv4gw.String(),
+		IPKernelParameters: fmt.Sprintf("ip=%s::%s:%s:%s:eth0:off:8.8.8.8:8.8.4.4:216.239.35.8", ipv4, ipv4gw, ipv4nm, hostname),
+		Disk:               disk,
+		Hostname:           hostname,
+		Status:             "Rebooting to Talos Linux in maintenance mode",
+	}
+	b, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(b))
+
 	services.Reboot(srv, nil)
-	fmt.Printf("Installed %s on disk %s!\n", *image, disk)
-	fmt.Printf("Your server %s is now rebooting to Talos maintenance mode!\n", *ip)
 }
