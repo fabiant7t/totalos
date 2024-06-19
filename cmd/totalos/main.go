@@ -11,9 +11,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fabiant7t/totalos/internal/totalos"
-	"github.com/fabiant7t/totalos/internal/totalos/services"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/fabiant7t/totalos/internal/totalos"
+	"github.com/fabiant7t/totalos/internal/totalos/command"
 )
 
 var (
@@ -57,7 +58,11 @@ func main() {
 	password := flag.String("password", "", "password of the user (optional)")
 	keyPath := flag.String("key", "", "path to the private key (optional)")
 	image := flag.String("image", "", "URL to ISO image (optional)")
-	webhook := flag.String("webhook", "", "Endpoint that should receive the report through HTTP POST (optional)")
+	webhook := flag.String(
+		"webhook",
+		"",
+		"Endpoint that should receive the report through HTTP POST (optional)",
+	)
 	versionFlag := flag.Bool("version", false, "prints the version")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
 
@@ -91,7 +96,7 @@ func main() {
 	cb := ssh.InsecureIgnoreHostKey()
 
 	if *image == "" {
-		arch, err := services.Arch(srv, cb)
+		arch, err := command.Arch(srv, cb)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -101,57 +106,57 @@ func main() {
 		}
 		*image = url
 	}
-	ipv4, err := services.IPv4(srv, cb)
+	ipv4, err := command.IPv4(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ipv4nm, err := services.IPv4Netmask(srv, cb)
+	ipv4nm, err := command.IPv4Netmask(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ipv4gw, err := services.IPv4Gateway(srv, cb)
+	ipv4gw, err := command.IPv4Gateway(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := services.SoftwareRAIDNotExists(srv, cb); err != nil {
+	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	if err := services.WipeFileSystemSignatures(srv, cb); err != nil {
+	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	device, sn, err := services.NominateInstallDisk(srv, cb)
+	device, sn, err := command.NominateInstallDisk(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := services.InstallImage(srv, *image, device, cb); err != nil {
+	if err := command.InstallImage(srv, *image, device, cb); err != nil {
 		log.Fatal(err)
 	}
-	mac, err := services.MAC(srv, cb)
+	mac, err := command.MAC(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	uuid, err := services.SystemUUID(srv, cb)
+	uuid, err := command.SystemUUID(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cpuName, err := services.CPUName(srv, cb)
+	cpuName, err := command.CPUName(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cpuCores, err := services.CPUCores(srv, cb)
+	cpuCores, err := command.CPUCores(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cpuThreads, err := services.CPUThreads(srv, cb)
+	cpuThreads, err := command.CPUThreads(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	memory, err := services.Memory(srv, cb)
+	memory, err := command.Memory(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
 	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
-	storage, err := services.Storage(srv, cb)
+	storage, err := command.Storage(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -185,7 +190,12 @@ func main() {
 	fmt.Println(string(jsonData))
 
 	if *webhook != "" {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, *webhook, bytes.NewReader(jsonData))
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			*webhook,
+			bytes.NewReader(jsonData),
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -199,6 +209,6 @@ func main() {
 	}
 
 	if *rebootFlag {
-		services.Reboot(srv, cb)
+		command.Reboot(srv, cb)
 	}
 }
