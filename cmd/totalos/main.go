@@ -31,13 +31,14 @@ type Network struct {
 }
 
 type Report struct {
-	Image       string  `json:"image"`
-	IPv4Network Network `json:"ipv4_network"`
-	Disk        Disk    `json:"disk"`
-	Hostname    string  `json:"hostname"`
-	MAC         string  `json:"mac"`
-	UUID        string  `json:"uuid"`
-	Rebooting   bool    `json:"rebooting"`
+	Image       string             `json:"image"`
+	IPv4Network Network            `json:"ipv4_network"`
+	Disk        Disk               `json:"disk"`
+	Storage     []totalos.GigaByte `json:"storage_gb"`
+	Hostname    string             `json:"hostname"`
+	MAC         string             `json:"mac"`
+	UUID        string             `json:"uuid"`
+	Rebooting   bool               `json:"rebooting"`
 }
 
 func main() {
@@ -124,6 +125,10 @@ func main() {
 		log.Fatal(err)
 	}
 	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
+	storage, err := services.Storage(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	report := Report{
 		Image: *image,
 		IPv4Network: Network{
@@ -135,6 +140,7 @@ func main() {
 			Device:       device,
 			SerialNumber: sn,
 		},
+		Storage:   storage,
 		MAC:       mac,
 		Hostname:  hostname,
 		UUID:      uuid,

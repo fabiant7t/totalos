@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabiant7t/totalos/internal/totalos"
 	"github.com/fabiant7t/totalos/pkg/remotecommand"
 	"golang.org/x/crypto/ssh"
 )
@@ -137,6 +138,27 @@ func SystemUUID(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error)
 		return "", err
 	}
 	return strings.TrimSpace(string(stdout)), nil
+}
+
+// Storage returns a slice with the gigabytes storage per disk
+func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.GigaByte, error) {
+	cmd := `
+	  lsblk -b --json \
+		| jq -r '.blockdevices | map(select(.type =="disk")) | .[] | .size' | awk '{printf "%d\n",$1 / 1000000000}'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return []totalos.GigaByte{}, err
+	}
+	var storage []totalos.GigaByte
+	for _, s := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
+		gb, err := strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			return []totalos.GigaByte{}, err
+		}
+		storage = append(storage, totalos.GigaByte(gb))
+	}
+	return storage, nil
 }
 
 // Reboot triggers a reboot. It does not return anything, since the
