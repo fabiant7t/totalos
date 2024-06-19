@@ -27,7 +27,11 @@ type githubAsset struct {
 // LatestImageURL takes the machine hardware name (architecture, the
 // result of `uname -m`), reads the GitHub releases API and returns
 // the latest non-draft and non-prerelease metal ISO URL.
-func LatestImageURL(ctx context.Context, machineHardwareName string) (string, error) {
+func LatestImageURL(ctx context.Context, machineHardwareName string, client *http.Client) (string, error) {
+	if client == nil {
+		client = &http.Client{}
+	}
+
 	url := "https://api.github.com/repos/siderolabs/talos/releases"
 
 	var wantName string
@@ -40,7 +44,6 @@ func LatestImageURL(ctx context.Context, machineHardwareName string) (string, er
 		return "", fmt.Errorf("Unknown machine hardware name (architecture: %s)", arch)
 	}
 
-	client := &http.Client{}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", err

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -45,6 +47,7 @@ func main() {
 	password := flag.String("password", "", "password of the user (optional)")
 	keyPath := flag.String("key", "", "path to the private key (optional)")
 	image := flag.String("image", "", "URL to ISO image (optional)")
+	webhook := flag.String("webhook", "", "Endpoint that should receive the report through HTTP POST (optional)")
 	versionFlag := flag.Bool("version", false, "prints the version")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
 
@@ -74,13 +77,14 @@ func main() {
 	}
 
 	ctx := context.Background()
+	client := &http.Client{}
 
 	if *image == "" {
 		arch, err := services.Arch(srv, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
-		url, err := totalos.LatestImageURL(ctx, arch)
+		url, err := totalos.LatestImageURL(ctx, arch, client)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -136,11 +140,24 @@ func main() {
 		UUID:      uuid,
 		Rebooting: *rebootFlag,
 	}
-	b, err := json.MarshalIndent(report, "", "  ")
+	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(string(b))
+	fmt.Println(string(jsonData))
+
+	if *webhook != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, *webhook, bytes.NewReader(jsonData))
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := client.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
+	}
 
 	if *rebootFlag {
 		services.Reboot(srv, nil)
