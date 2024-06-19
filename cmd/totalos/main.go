@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -38,20 +39,41 @@ type CPU struct {
 	Threads int    `json:"threads"`
 }
 
-type Report struct {
-	Image       string             `json:"image"`
+type Machine struct {
+	Arch        string             `json:"arch"`
 	IPv4Network Network            `json:"ipv4_network"`
-	Disk        Disk               `json:"disk"`
+	Hostname    string             `json:"hostname"`
 	Storage     []totalos.GigaByte `json:"storage_gb"`
 	CPU         CPU                `json:"cpu"`
 	Memory      totalos.GigaByte   `json:"memory_gb"`
-	Hostname    string             `json:"hostname"`
 	MAC         string             `json:"mac"`
 	UUID        string             `json:"uuid"`
-	Rebooting   bool               `json:"rebooting"`
+}
+
+type Installation struct {
+	Image     string `json:"image"`
+	Disk      Disk   `json:"disk"`
+	Rebooting bool   `json:"rebooting"`
+}
+
+type Report struct {
+	Installation Installation `json:"installation"`
+	Machine      Machine      `json:"machine"`
+}
+
+type CallArgs struct {
+	IP       string
+	Port     uint16
+	User     string
+	Password string
+	KeyPath  string
+	Image    string
+	Webhook  string
+	Reboot   bool
 }
 
 func main() {
+	// Parse and validate arguments and populate CallArgs. Might exit early (--version).
 	ip := flag.String("ip", "", "IP of the server")
 	port := flag.Uint("port", 22, "SSH port of the server")
 	user := flag.String("user", "root", "name of the user")
@@ -69,10 +91,9 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("totalos v%s\n", version)
 		os.Exit(0)
 	}
-
 	if *ip == "" {
 		fmt.Println("Error: --ip flag is required")
 		flag.Usage()
@@ -83,28 +104,36 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+	args := CallArgs{
+		IP:       *ip,
+		Port:     uint16(*port),
+		User:     *user,
+		Password: *password,
+		KeyPath:  *keyPath,
+		Image:    *image,
+		Webhook:  *webhook,
+		Reboot:   *rebootFlag,
+	}
 
-	srv := totalos.NewServer(*ip, *user, uint16(*port), *password, nil)
-	if *keyPath != "" {
-		if err := srv.SetKeyFromFile(*keyPath); err != nil {
+	// Context with deadline
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	// HTTP client
+	client := &http.Client{}
+	// SSH host key callback, key is not being checked.
+	cb := ssh.InsecureIgnoreHostKey()
+	// Define target server
+	srv := totalos.NewServer(args.IP, args.User, args.Port, args.Password, nil)
+	if args.KeyPath != "" {
+		if err := srv.SetKeyFromFile(args.KeyPath); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	ctx := context.Background()
-	client := &http.Client{}
-	cb := ssh.InsecureIgnoreHostKey()
-
-	if *image == "" {
-		arch, err := command.Arch(srv, cb)
-		if err != nil {
-			log.Fatal(err)
-		}
-		url, err := totalos.LatestImageURL(ctx, arch, client)
-		if err != nil {
-			log.Fatal(err)
-		}
-		*image = url
+	// Machine
+	arch, err := command.Arch(srv, cb)
+	if err != nil {
+		log.Fatal(err)
 	}
 	ipv4, err := command.IPv4(srv, cb)
 	if err != nil {
@@ -116,19 +145,6 @@ func main() {
 	}
 	ipv4gw, err := command.IPv4Gateway(srv, cb)
 	if err != nil {
-		log.Fatal(err)
-	}
-	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
-		log.Fatal(err)
-	}
-	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
-		log.Fatal(err)
-	}
-	device, sn, err := command.NominateInstallDisk(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := command.InstallImage(srv, *image, device, cb); err != nil {
 		log.Fatal(err)
 	}
 	mac, err := command.MAC(srv, cb)
@@ -160,28 +176,59 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	report := Report{
-		Image: *image,
+	machine := Machine{
+		Arch: arch,
 		IPv4Network: Network{
 			IP:      ipv4.String(),
 			Netmask: ipv4nm.String(),
 			Gateway: ipv4gw.String(),
 		},
-		Disk: Disk{
-			Device:       device,
-			SerialNumber: sn,
-		},
+		Hostname: hostname,
 		CPU: CPU{
 			Name:    cpuName,
 			Cores:   cpuCores,
 			Threads: cpuThreads,
 		},
-		Memory:    memory,
-		Storage:   storage,
-		MAC:       mac,
-		Hostname:  hostname,
-		UUID:      uuid,
+		Memory:  memory,
+		Storage: storage,
+		MAC:     mac,
+		UUID:    uuid,
+	}
+
+	// Installation
+	if args.Image == "" {
+		url, err := totalos.LatestImageURL(ctx, arch, client)
+		if err != nil {
+			log.Fatal(err)
+		}
+		args.Image = url
+	}
+	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
+		log.Fatal(err)
+	}
+	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
+		log.Fatal(err)
+	}
+	device, sn, err := command.NominateInstallDisk(srv, cb)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := command.InstallImage(srv, args.Image, device, cb); err != nil {
+		log.Fatal(err)
+	}
+	installation := Installation{
+		Image: *image,
+		Disk: Disk{
+			Device:       device,
+			SerialNumber: sn,
+		},
 		Rebooting: *rebootFlag,
+	}
+
+	// Report
+	report := Report{
+		Installation: installation,
+		Machine:      machine,
 	}
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
@@ -208,7 +255,7 @@ func main() {
 		defer res.Body.Close()
 	}
 
-	if *rebootFlag {
+	if args.Reboot {
 		command.Reboot(srv, cb)
 	}
 }
