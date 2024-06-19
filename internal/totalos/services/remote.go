@@ -152,13 +152,82 @@ func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.GigaByt
 	}
 	var storage []totalos.GigaByte
 	for _, s := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
-		gb, err := strconv.ParseInt(s, 10, 32)
+		gb, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return []totalos.GigaByte{}, err
 		}
 		storage = append(storage, totalos.GigaByte(gb))
 	}
 	return storage, nil
+}
+
+// CPUName returns the CPU name
+func CPUName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
+	cmd := `
+	  dmidecode -t processor \
+		| grep Version\: \
+		| cut -d ':' -f 2- \
+		| awk '{print}'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(stdout)), nil
+}
+
+// CPUCores returns the amount of real CPU cores
+func CPUCores(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
+	cmd := `
+	  dmidecode -t processor \
+		| grep Core\ Count: \
+		| awk '{print $3}'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return 0, err
+	}
+	count, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+// CPUThreads returns the amount of CPU threads
+func CPUThreads(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
+	cmd := `
+	  dmidecode -t processor \
+		| grep Thread\ Count: \
+		| awk '{print $3}'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return 0, err
+	}
+	threads, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int(threads), nil
+}
+
+// Memory returns the amount of RAM
+func Memory(m remotecommand.Machine, cb ssh.HostKeyCallback) (totalos.GigaByte, error) {
+	cmd := `
+	  dmidecode -t memory \
+		| grep -i size \
+		| awk '{sum += $2} END {print sum}'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return 0, err
+	}
+	mem, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return totalos.GigaByte(mem), nil
 }
 
 // Reboot triggers a reboot. It does not return anything, since the

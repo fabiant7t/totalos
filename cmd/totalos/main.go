@@ -13,6 +13,7 @@ import (
 
 	"github.com/fabiant7t/totalos/internal/totalos"
 	"github.com/fabiant7t/totalos/internal/totalos/services"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -30,11 +31,19 @@ type Network struct {
 	Gateway string `json:"gateway"`
 }
 
+type CPU struct {
+	Name    string `json:"name"`
+	Cores   int    `json:"cores"`
+	Threads int    `json:"threads"`
+}
+
 type Report struct {
 	Image       string             `json:"image"`
 	IPv4Network Network            `json:"ipv4_network"`
 	Disk        Disk               `json:"disk"`
 	Storage     []totalos.GigaByte `json:"storage_gb"`
+	CPU         CPU                `json:"cpu"`
+	Memory      totalos.GigaByte   `json:"memory_gb"`
 	Hostname    string             `json:"hostname"`
 	MAC         string             `json:"mac"`
 	UUID        string             `json:"uuid"`
@@ -79,9 +88,10 @@ func main() {
 
 	ctx := context.Background()
 	client := &http.Client{}
+	cb := ssh.InsecureIgnoreHostKey()
 
 	if *image == "" {
-		arch, err := services.Arch(srv, nil)
+		arch, err := services.Arch(srv, cb)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -91,41 +101,57 @@ func main() {
 		}
 		*image = url
 	}
-	ipv4, err := services.IPv4(srv, nil)
+	ipv4, err := services.IPv4(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ipv4nm, err := services.IPv4Netmask(srv, nil)
+	ipv4nm, err := services.IPv4Netmask(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ipv4gw, err := services.IPv4Gateway(srv, nil)
+	ipv4gw, err := services.IPv4Gateway(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := services.SoftwareRAIDNotExists(srv, nil); err != nil {
+	if err := services.SoftwareRAIDNotExists(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	if err := services.WipeFileSystemSignatures(srv, nil); err != nil {
+	if err := services.WipeFileSystemSignatures(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	device, sn, err := services.NominateInstallDisk(srv, nil)
+	device, sn, err := services.NominateInstallDisk(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := services.InstallImage(srv, *image, device, nil); err != nil {
+	if err := services.InstallImage(srv, *image, device, cb); err != nil {
 		log.Fatal(err)
 	}
-	mac, err := services.MAC(srv, nil)
+	mac, err := services.MAC(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
-	uuid, err := services.SystemUUID(srv, nil)
+	uuid, err := services.SystemUUID(srv, cb)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cpuName, err := services.CPUName(srv, cb)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cpuCores, err := services.CPUCores(srv, cb)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cpuThreads, err := services.CPUThreads(srv, cb)
+	if err != nil {
+		log.Fatal(err)
+	}
+	memory, err := services.Memory(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
 	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
-	storage, err := services.Storage(srv, nil)
+	storage, err := services.Storage(srv, cb)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -140,6 +166,12 @@ func main() {
 			Device:       device,
 			SerialNumber: sn,
 		},
+		CPU: CPU{
+			Name:    cpuName,
+			Cores:   cpuCores,
+			Threads: cpuThreads,
+		},
+		Memory:    memory,
 		Storage:   storage,
 		MAC:       mac,
 		Hostname:  hostname,
@@ -166,6 +198,6 @@ func main() {
 	}
 
 	if *rebootFlag {
-		services.Reboot(srv, nil)
+		services.Reboot(srv, cb)
 	}
 }
