@@ -48,27 +48,28 @@ func WipeFileSystemSignatures(m remotecommand.Machine, cb ssh.HostKeyCallback) e
 // NominateInstallDisk queries all bulk devices, sorts them alphabetically
 // by their serial number and returns the first disk.
 // The result should be deterministic.
-func NominateInstallDisk(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
+func NominateInstallDisk(m remotecommand.Machine, cb ssh.HostKeyCallback) (dev string, sn string, err error) {
 	cmd := `
-		name=$(
-		    lsblk --json -o NAME,SERIAL,TYPE \
-				| jq -r '.blockdevices | map(select(.type == "disk")) | sort_by(.serial) | .[0].name'
-    );
-		echo /dev/${name}
+	  lsblk --json -o NAME,SERIAL,TYPE \
+		| jq -r '.blockdevices | map(select(.type == "disk")) | sort_by(.serial) | .[0] | "/dev/" + .name + " " + .serial'
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return strings.TrimSpace(string(stdout)), nil
+	tokens := strings.Split(strings.TrimSpace(string(stdout)), " ")
+	if len(tokens) != 2 {
+		return "", "", fmt.Errorf("Cannot parse device and serial from %s", stdout)
+	}
+	return tokens[0], tokens[1], nil
 }
 
-// InstallImage downloads the ISO image URL and writes it to the given disk.
-func InstallImage(m remotecommand.Machine, isoImageURL string, disk string, cb ssh.HostKeyCallback) error {
+// InstallImage downloads the ISO image URL and writes it to the given device.
+func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.HostKeyCallback) error {
 	cmd := fmt.Sprintf(`
 	  wget %s -O talos-metal.iso \
 		&& dd if=talos-metal.iso of=%s bs=4M \
-		&& sync`, isoImageURL, disk)
+		&& sync`, isoImageURL, device)
 	_, err := remotecommand.Command(m, cmd, cb)
 	return err
 }
@@ -117,8 +118,29 @@ func IPv4Gateway(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error
 	return net.ParseIP(strings.TrimSpace(string(stdout))), nil
 }
 
+// MAC returns the address of the ethernet interface
+func MAC(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
+	cmd := `ip -j link show eth0 | jq -r ".[0].address"`
+
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(stdout)), nil
+}
+
+// SystemUUID as defined in SMBIOS data
+func SystemUUID(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
+	cmd := `dmidecode -s system-uuid`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(stdout)), nil
+}
+
 // Reboot triggers a reboot. It does not return anything, since the
 // machine should be offline and not be able to have an SSH chat :)
 func Reboot(m remotecommand.Machine, cb ssh.HostKeyCallback) {
-	_, _ = remotecommand.Command(m, "reboot", cb)
+	_, _ = remotecommand.Command(m, `shutdown -r now`, cb)
 }

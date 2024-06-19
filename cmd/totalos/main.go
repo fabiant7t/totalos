@@ -17,15 +17,25 @@ var (
 	version = "dev" // default version, redacted when building
 )
 
+type Disk struct {
+	Device       string `json:"device"`
+	SerialNumber string `json:"serial_number"`
+}
+
+type Network struct {
+	IP      string `json:"ip"`
+	Netmask string `json:"netmask"`
+	Gateway string `json:"gateway"`
+}
+
 type Report struct {
-	Image              string `json:"image"`
-	IP                 string `json:"ip"`
-	Netmask            string `json:"netmask"`
-	Gateway            string `json:"gateway"`
-	IPKernelParameters string `json:"ip_kernel_parameters"`
-	Disk               string `json:"disk"`
-	Hostname           string `json:"hostname"`
-	Status             string `json:"status"`
+	Image       string  `json:"image"`
+	IPv4Network Network `json:"ipv4_network"`
+	Disk        Disk    `json:"disk"`
+	Hostname    string  `json:"hostname"`
+	MAC         string  `json:"mac"`
+	UUID        string  `json:"uuid"`
+	Rebooting   bool    `json:"rebooting"`
 }
 
 func main() {
@@ -36,6 +46,7 @@ func main() {
 	keyPath := flag.String("key", "", "path to the private key (optional)")
 	image := flag.String("image", "", "URL to ISO image (optional)")
 	versionFlag := flag.Bool("version", false, "prints the version")
+	rebootFlag := flag.Bool("reboot", false, "reboot the server")
 
 	flag.Parse()
 
@@ -93,23 +104,37 @@ func main() {
 	if err := services.WipeFileSystemSignatures(srv, nil); err != nil {
 		log.Fatal(err)
 	}
-	disk, err := services.NominateInstallDisk(srv, nil)
+	device, sn, err := services.NominateInstallDisk(srv, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := services.InstallImage(srv, *image, disk, nil); err != nil {
+	if err := services.InstallImage(srv, *image, device, nil); err != nil {
+		log.Fatal(err)
+	}
+	mac, err := services.MAC(srv, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	uuid, err := services.SystemUUID(srv, nil)
+	if err != nil {
 		log.Fatal(err)
 	}
 	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
 	report := Report{
-		Image:              *image,
-		IP:                 ipv4.String(),
-		Netmask:            ipv4nm.String(),
-		Gateway:            ipv4gw.String(),
-		IPKernelParameters: fmt.Sprintf("ip=%s::%s:%s:%s:eth0:off:8.8.8.8:8.8.4.4:216.239.35.8", ipv4, ipv4gw, ipv4nm, hostname),
-		Disk:               disk,
-		Hostname:           hostname,
-		Status:             "Rebooting to Talos Linux in maintenance mode",
+		Image: *image,
+		IPv4Network: Network{
+			IP:      ipv4.String(),
+			Netmask: ipv4nm.String(),
+			Gateway: ipv4gw.String(),
+		},
+		Disk: Disk{
+			Device:       device,
+			SerialNumber: sn,
+		},
+		MAC:       mac,
+		Hostname:  hostname,
+		UUID:      uuid,
+		Rebooting: *rebootFlag,
 	}
 	b, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
@@ -117,5 +142,7 @@ func main() {
 	}
 	fmt.Println(string(b))
 
-	services.Reboot(srv, nil)
+	if *rebootFlag {
+		services.Reboot(srv, nil)
+	}
 }
