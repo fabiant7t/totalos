@@ -209,7 +209,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if args.FormatStorageDisk {
-		if err := command.FormatExt4(srv, "openebs", installation.StorageDisk.Device(), cb); err != nil {
+		if err := command.FormatExt4(srv, "storage", installation.StorageDisk.Device(), cb); err != nil {
 			log.Fatal(err)
 		}
 	}
