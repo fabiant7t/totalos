@@ -23,43 +23,15 @@ var (
 	version = "dev" // default version, redacted when building
 )
 
-type Disk struct {
-	Device       string `json:"device"`
-	SerialNumber string `json:"serial_number"`
-}
-
-type Network struct {
-	IP      string `json:"ip"`
-	Netmask string `json:"netmask"`
-	Gateway string `json:"gateway"`
-}
-
-type CPU struct {
-	Name    string `json:"name"`
-	Cores   int    `json:"cores"`
-	Threads int    `json:"threads"`
-}
-
-type Machine struct {
-	Arch        string             `json:"arch"`
-	IPv4Network Network            `json:"ipv4_network"`
-	Hostname    string             `json:"hostname"`
-	Storage     []totalos.GigaByte `json:"storage_gb"`
-	CPU         CPU                `json:"cpu"`
-	Memory      totalos.GigaByte   `json:"memory_gb"`
-	MAC         string             `json:"mac"`
-	UUID        string             `json:"uuid"`
-}
-
 type Installation struct {
-	Image     string `json:"image"`
-	Disk      Disk   `json:"disk"`
-	Rebooting bool   `json:"rebooting"`
+	Image      string       `json:"image"`
+	SystemDisk totalos.Disk `json:"system_disk"`
+	Rebooting  bool         `json:"rebooting"`
 }
 
 type Report struct {
-	Installation Installation `json:"installation"`
-	Machine      Machine      `json:"machine"`
+	Installation Installation    `json:"installation"`
+	Machine      totalos.Machine `json:"machine"`
 }
 
 type CallArgs struct {
@@ -132,7 +104,7 @@ func main() {
 	}
 
 	// Machine
-	var m Machine
+	var m totalos.Machine
 	var g errgroup.Group
 	g.SetLimit(5)
 	g.Go(func() error {
@@ -187,8 +159,8 @@ func main() {
 		return err
 	})
 	g.Go(func() error {
-		storage, err := command.Storage(srv, cb)
-		m.Storage = storage
+		disks, err := command.Disks(srv, cb)
+		m.Disks = disks
 		return err
 	})
 	if err := g.Wait(); err != nil {
@@ -213,13 +185,12 @@ func main() {
 	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	device, sn, err := command.NominateInstallDisk(srv, cb)
+	disk, err := command.SelectSystemDisk(m.Disks)
 	if err != nil {
 		log.Fatal(err)
 	}
-	installation.Disk.Device = device
-	installation.Disk.SerialNumber = sn
-	if err := command.InstallImage(srv, installation.Image, installation.Disk.Device, cb); err != nil {
+	installation.SystemDisk = disk
+	if err := command.InstallImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
 		log.Fatal(err)
 	}
 

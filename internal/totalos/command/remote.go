@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
@@ -47,23 +48,21 @@ func WipeFileSystemSignatures(m remotecommand.Machine, cb ssh.HostKeyCallback) e
 	return err
 }
 
-// NominateInstallDisk queries all bulk devices, sorts them alphabetically
-// by their serial number and returns the first disk.
-// The result should be deterministic.
-func NominateInstallDisk(m remotecommand.Machine, cb ssh.HostKeyCallback) (dev string, sn string, err error) {
+// Disks returns all disks
+func Disks(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.Disk, error) {
 	cmd := `
-	  lsblk --json -o NAME,SERIAL,TYPE \
-		| jq -r '.blockdevices | map(select(.type == "disk")) | sort_by(.serial) | .[0] | "/dev/" + .name + " " + .serial'
-	`
+	  lsblk -o NAME,SERIAL,SIZE,TYPE,MODEL --json -b \
+		| jq -r '.blockdevices | map(select(.type == "disk"))'
+  `
+	var disks []totalos.Disk
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", "", err
+		return disks, err
 	}
-	tokens := strings.Split(strings.TrimSpace(string(stdout)), " ")
-	if len(tokens) != 2 {
-		return "", "", fmt.Errorf("Cannot parse device and serial from %s", stdout)
+	if err := json.Unmarshal(stdout, &disks); err != nil {
+		return disks, err
 	}
-	return tokens[0], tokens[1], nil
+	return disks, nil
 }
 
 // InstallImage downloads the ISO image URL and writes it to the given device.
