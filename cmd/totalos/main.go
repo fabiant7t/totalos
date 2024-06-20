@@ -27,6 +27,7 @@ type Installation struct {
 	FormatStorageDisk bool         `json:"format_storage_disk"`
 	Image             string       `json:"image"`
 	Rebooting         bool         `json:"rebooting"`
+	Config            string       `json:"config"`
 	StorageDisk       totalos.Disk `json:"storage_disk"`
 	SystemDisk        totalos.Disk `json:"system_disk"`
 }
@@ -44,6 +45,7 @@ type CallArgs struct {
 	KeyPath           string
 	Image             string
 	Webhook           string
+	Config            string
 	Reboot            bool
 	FormatStorageDisk bool
 }
@@ -54,12 +56,13 @@ func NewCallArgs() *CallArgs {
 	user := flag.String("user", "root", "name of the user")
 	password := flag.String("password", "", "password of the user (optional)")
 	keyPath := flag.String("key", "", "path to the private key (optional)")
-	image := flag.String("image", "", "URL to ISO image (optional)")
+	image := flag.String("image", "", "URL to raw.xz image (optional)")
 	webhook := flag.String(
 		"webhook",
 		"",
 		"Endpoint that should receive the report through HTTP POST (optional)",
 	)
+	config := flag.String("config", "", "URL at which the machine configuration data may be found (optional)")
 	versionFlag := flag.Bool("version", false, "prints the version")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
 	formatStorageDiskFlag := flag.Bool("format-storage-disk", false, "format storage disk (optional)")
@@ -88,6 +91,7 @@ func NewCallArgs() *CallArgs {
 		KeyPath:           *keyPath,
 		Image:             *image,
 		Webhook:           *webhook,
+		Config:            *config,
 		Reboot:            *rebootFlag,
 		FormatStorageDisk: *formatStorageDiskFlag,
 	}
@@ -181,7 +185,9 @@ func main() {
 		Image:             args.Image,
 		Rebooting:         args.Reboot,
 		FormatStorageDisk: args.FormatStorageDisk,
+		Config:            args.Config,
 	}
+	// If image is not given, query the latest one
 	if installation.Image == "" {
 		url, err := totalos.LatestImageURL(ctx, mach.Arch, client)
 		if err != nil {
@@ -189,32 +195,40 @@ func main() {
 		}
 		installation.Image = url
 	}
+	// Reset disks
 	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
 		log.Fatal(err)
 	}
 	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
 		log.Fatal(err)
 	}
+	// Select system disk and write image data on it
 	systemDisk, err := command.SelectSystemDisk(mach.Disks)
 	if err != nil {
 		log.Fatal(err)
 	}
 	installation.SystemDisk = systemDisk
+	if err := command.InstallImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
+		log.Fatal(err)
+	}
+	// If config is given, set it as talos.config option in grub.cfg
+	if args.Config != "" {
+		if err := command.SetConfigURL(srv, args.Config, installation.SystemDisk.Device(), cb); err != nil {
+			log.Fatal(err)
+		}
+	}
+	// Select storage disk and format it (if requested)
 	storageDisk, err := command.SelectStorageDisk(mach.Disks, systemDisk)
 	if err != nil {
 		log.Fatal(err)
 	}
 	installation.StorageDisk = storageDisk
-	if err := command.InstallImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
-		log.Fatal(err)
-	}
 	if args.FormatStorageDisk {
 		if err := command.FormatExt4(srv, "storage", installation.StorageDisk.Device(), cb); err != nil {
 			log.Fatal(err)
 		}
 	}
-
-	// Report
+	// Create report and print it to stdout
 	report := Report{
 		Installation: installation,
 		Machine:      mach,
@@ -224,7 +238,7 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(string(jsonData))
-
+	// Send report to webhook (if given)
 	if args.Webhook != "" {
 		req, err := http.NewRequestWithContext(
 			ctx,
@@ -243,7 +257,7 @@ func main() {
 		}
 		defer res.Body.Close()
 	}
-
+	// Reboot (if requested)
 	if args.Reboot {
 		command.Reboot(srv, cb)
 	}

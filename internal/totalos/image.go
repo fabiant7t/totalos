@@ -37,9 +37,9 @@ func LatestImageURL(ctx context.Context, machineHardwareName string, client *htt
 	var wantName string
 	switch arch := machineHardwareName; arch {
 	case "x86_64":
-		wantName = "metal-amd64.iso"
+		wantName = "metal-amd64.raw.xz"
 	case "aarch64", "arm64":
-		wantName = "metal-arm64.iso"
+		wantName = "metal-arm64.raw.xz"
 	default:
 		return "", fmt.Errorf("Unknown machine hardware name (architecture: %s)", arch)
 	}

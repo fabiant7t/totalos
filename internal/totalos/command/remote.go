@@ -65,11 +65,13 @@ func Disks(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.Disk, err
 	return disks, nil
 }
 
-// InstallImage downloads the ISO image URL and writes it to the given device.
+// InstallImage downloads the raw.xz image URL and writes it to the given device.
 func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.HostKeyCallback) error {
 	cmd := fmt.Sprintf(`
-	  wget %s -O talos-metal.iso \
-		&& dd if=talos-metal.iso of=%s bs=4M \
+	  wget %s -O talos-metal.raw.xz \
+		&& cat talos-metal.raw.xz \
+		|  xz -d \
+		|  dd of=%s bs=4M \
 		&& sync`, isoImageURL, device)
 	_, err := remotecommand.Command(m, cmd, cb)
 	return err
@@ -247,4 +249,25 @@ func Memory(m remotecommand.Machine, cb ssh.HostKeyCallback) (totalos.GigaByte, 
 // machine should be offline and not be able to have an SSH chat :)
 func Reboot(m remotecommand.Machine, cb ssh.HostKeyCallback) {
 	_, _ = remotecommand.Command(m, `shutdown -r now`, cb)
+}
+
+// Sets talos.config in grub.cfg
+func SetConfigURL(m remotecommand.Machine, configURL, device string, cb ssh.HostKeyCallback) error {
+	replacer := strings.NewReplacer(
+		"&", "\\&",
+		"/", "\\/",
+		":", "\\:",
+		"{", "\\{",
+		"}", "\\}",
+	)
+	replacement := replacer.Replace(configURL)
+	cmd := fmt.Sprintf(`
+    mount %sp3 /mnt \
+		&& cp /mnt/grub/grub.cfg /mnt/grub/grub.cfg.orig \
+		&& sed 's/talos.platform=metal/talos.platform=metal talos.config=%s/g' /mnt/grub/grub.cfg.orig \
+		> /mnt/grub/grub.cfg \
+		&& umount /mnt
+	`, device, replacement)
+	_, err := remotecommand.Command(m, cmd, cb)
+	return err
 }
