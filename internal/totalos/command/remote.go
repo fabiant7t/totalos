@@ -75,6 +75,19 @@ func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.Ho
 	return err
 }
 
+// FormatExt4 formats the full device with one ext4 partition.
+func FormatExt4(m remotecommand.Machine, label, device string, cb ssh.HostKeyCallback) error {
+	cmd := fmt.Sprintf(`
+	  export DEVICE=%s \
+		&& wipefs -af ${DEVICE} \
+		&& parted ${DEVICE} mklabel gpt \
+		&& parted -a opt ${DEVICE} mkpart primary ext4 %s %s \
+		&& mkfs.ext4 -F -L %s ${DEVICE}
+	`, device, "0%", "100%", label)
+	_, err := remotecommand.Command(m, cmd, cb)
+	return err
+}
+
 // IPv4 address of eth0
 func IPv4(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
 	cmd := `

@@ -24,9 +24,11 @@ var (
 )
 
 type Installation struct {
-	Image      string       `json:"image"`
-	SystemDisk totalos.Disk `json:"system_disk"`
-	Rebooting  bool         `json:"rebooting"`
+	FormatStorageDisk bool         `json:"format_storage_disk"`
+	Image             string       `json:"image"`
+	Rebooting         bool         `json:"rebooting"`
+	StorageDisk       totalos.Disk `json:"storage_disk"`
+	SystemDisk        totalos.Disk `json:"system_disk"`
 }
 
 type Report struct {
@@ -35,18 +37,18 @@ type Report struct {
 }
 
 type CallArgs struct {
-	IP       string
-	Port     uint16
-	User     string
-	Password string
-	KeyPath  string
-	Image    string
-	Webhook  string
-	Reboot   bool
+	IP                string
+	Port              uint16
+	User              string
+	Password          string
+	KeyPath           string
+	Image             string
+	Webhook           string
+	Reboot            bool
+	FormatStorageDisk bool
 }
 
-func main() {
-	// Parse and validate arguments and populate CallArgs. Might exit early (--version).
+func NewCallArgs() *CallArgs {
 	ip := flag.String("ip", "", "IP of the server")
 	port := flag.Uint("port", 22, "SSH port of the server")
 	user := flag.String("user", "root", "name of the user")
@@ -60,6 +62,7 @@ func main() {
 	)
 	versionFlag := flag.Bool("version", false, "prints the version")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
+	formatStorageDiskFlag := flag.Bool("format-storage-disk", false, "format storage disk (optional)")
 
 	flag.Parse()
 
@@ -77,16 +80,22 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	args := CallArgs{
-		IP:       *ip,
-		Port:     uint16(*port),
-		User:     *user,
-		Password: *password,
-		KeyPath:  *keyPath,
-		Image:    *image,
-		Webhook:  *webhook,
-		Reboot:   *rebootFlag,
+	return &CallArgs{
+		IP:                *ip,
+		Port:              uint16(*port),
+		User:              *user,
+		Password:          *password,
+		KeyPath:           *keyPath,
+		Image:             *image,
+		Webhook:           *webhook,
+		Reboot:            *rebootFlag,
+		FormatStorageDisk: *formatStorageDiskFlag,
 	}
+}
+
+func main() {
+	// Parse and validate arguments and populate CallArgs. Might exit early (--version).
+	args := NewCallArgs()
 
 	// Context with deadline
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -104,63 +113,63 @@ func main() {
 	}
 
 	// Machine
-	var m totalos.Machine
+	var mach totalos.Machine
 	var g errgroup.Group
 	g.SetLimit(5)
 	g.Go(func() error {
 		arch, err := command.Arch(srv, cb)
-		m.Arch = arch
+		mach.Arch = arch
 		return err
 	})
 	g.Go(func() error {
 		ipv4, err := command.IPv4(srv, cb)
-		m.IPv4Network.IP = ipv4.String()
-		m.Hostname = fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
+		mach.IPv4Network.IP = ipv4.String()
+		mach.Hostname = fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
 		return err
 	})
 	g.Go(func() error {
 		nm, err := command.IPv4Netmask(srv, cb)
-		m.IPv4Network.Netmask = nm.String()
+		mach.IPv4Network.Netmask = nm.String()
 		return err
 	})
 	g.Go(func() error {
 		gw, err := command.IPv4Gateway(srv, cb)
-		m.IPv4Network.Gateway = gw.String()
+		mach.IPv4Network.Gateway = gw.String()
 		return err
 	})
 	g.Go(func() error {
 		mac, err := command.MAC(srv, cb)
-		m.MAC = mac
+		mach.MAC = mac
 		return err
 	})
 	g.Go(func() error {
 		uuid, err := command.SystemUUID(srv, cb)
-		m.UUID = uuid
+		mach.UUID = uuid
 		return err
 	})
 	g.Go(func() error {
 		cpuName, err := command.CPUName(srv, cb)
-		m.CPU.Name = cpuName
+		mach.CPU.Name = cpuName
 		return err
 	})
 	g.Go(func() error {
 		cpuCores, err := command.CPUCores(srv, cb)
-		m.CPU.Cores = cpuCores
+		mach.CPU.Cores = cpuCores
 		return err
 	})
 	g.Go(func() error {
 		cpuThreads, err := command.CPUThreads(srv, cb)
-		m.CPU.Threads = cpuThreads
+		mach.CPU.Threads = cpuThreads
 		return err
 	})
 	g.Go(func() error {
 		memory, err := command.Memory(srv, cb)
-		m.Memory = memory
+		mach.Memory = memory
 		return err
 	})
 	g.Go(func() error {
 		disks, err := command.Disks(srv, cb)
-		m.Disks = disks
+		mach.Disks = disks
 		return err
 	})
 	if err := g.Wait(); err != nil {
@@ -169,11 +178,12 @@ func main() {
 
 	// Installation
 	installation := Installation{
-		Image:     args.Image,
-		Rebooting: args.Reboot,
+		Image:             args.Image,
+		Rebooting:         args.Reboot,
+		FormatStorageDisk: args.FormatStorageDisk,
 	}
 	if installation.Image == "" {
-		url, err := totalos.LatestImageURL(ctx, m.Arch, client)
+		url, err := totalos.LatestImageURL(ctx, mach.Arch, client)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -185,19 +195,29 @@ func main() {
 	if err := command.WipeFileSystemSignatures(srv, cb); err != nil {
 		log.Fatal(err)
 	}
-	disk, err := command.SelectSystemDisk(m.Disks)
+	systemDisk, err := command.SelectSystemDisk(mach.Disks)
 	if err != nil {
 		log.Fatal(err)
 	}
-	installation.SystemDisk = disk
+	installation.SystemDisk = systemDisk
+	storageDisk, err := command.SelectStorageDisk(mach.Disks, systemDisk)
+	if err != nil {
+		log.Fatal(err)
+	}
+	installation.StorageDisk = storageDisk
 	if err := command.InstallImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
 		log.Fatal(err)
+	}
+	if args.FormatStorageDisk {
+		if err := command.FormatExt4(srv, "openebs", installation.StorageDisk.Device(), cb); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Report
 	report := Report{
 		Installation: installation,
-		Machine:      m,
+		Machine:      mach,
 	}
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
