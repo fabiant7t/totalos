@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/fabiant7t/totalos/internal/totalos"
 	"github.com/fabiant7t/totalos/internal/totalos/command"
@@ -131,77 +132,80 @@ func main() {
 	}
 
 	// Machine
-	arch, err := command.Arch(srv, cb)
-	if err != nil {
+	var m Machine
+	var g errgroup.Group
+	g.SetLimit(5)
+	g.Go(func() error {
+		arch, err := command.Arch(srv, cb)
+		m.Arch = arch
+		return err
+	})
+	g.Go(func() error {
+		ipv4, err := command.IPv4(srv, cb)
+		m.IPv4Network.IP = ipv4.String()
+		m.Hostname = fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
+		return err
+	})
+	g.Go(func() error {
+		nm, err := command.IPv4Netmask(srv, cb)
+		m.IPv4Network.Netmask = nm.String()
+		return err
+	})
+	g.Go(func() error {
+		gw, err := command.IPv4Gateway(srv, cb)
+		m.IPv4Network.Gateway = gw.String()
+		return err
+	})
+	g.Go(func() error {
+		mac, err := command.MAC(srv, cb)
+		m.MAC = mac
+		return err
+	})
+	g.Go(func() error {
+		uuid, err := command.SystemUUID(srv, cb)
+		m.UUID = uuid
+		return err
+	})
+	g.Go(func() error {
+		cpuName, err := command.CPUName(srv, cb)
+		m.CPU.Name = cpuName
+		return err
+	})
+	g.Go(func() error {
+		cpuCores, err := command.CPUCores(srv, cb)
+		m.CPU.Cores = cpuCores
+		return err
+	})
+	g.Go(func() error {
+		cpuThreads, err := command.CPUThreads(srv, cb)
+		m.CPU.Threads = cpuThreads
+		return err
+	})
+	g.Go(func() error {
+		memory, err := command.Memory(srv, cb)
+		m.Memory = memory
+		return err
+	})
+	g.Go(func() error {
+		storage, err := command.Storage(srv, cb)
+		m.Storage = storage
+		return err
+	})
+	if err := g.Wait(); err != nil {
 		log.Fatal(err)
-	}
-	ipv4, err := command.IPv4(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ipv4nm, err := command.IPv4Netmask(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ipv4gw, err := command.IPv4Gateway(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	mac, err := command.MAC(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	uuid, err := command.SystemUUID(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cpuName, err := command.CPUName(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cpuCores, err := command.CPUCores(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cpuThreads, err := command.CPUThreads(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	memory, err := command.Memory(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	hostname := fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
-	storage, err := command.Storage(srv, cb)
-	if err != nil {
-		log.Fatal(err)
-	}
-	machine := Machine{
-		Arch: arch,
-		IPv4Network: Network{
-			IP:      ipv4.String(),
-			Netmask: ipv4nm.String(),
-			Gateway: ipv4gw.String(),
-		},
-		Hostname: hostname,
-		CPU: CPU{
-			Name:    cpuName,
-			Cores:   cpuCores,
-			Threads: cpuThreads,
-		},
-		Memory:  memory,
-		Storage: storage,
-		MAC:     mac,
-		UUID:    uuid,
 	}
 
 	// Installation
-	if args.Image == "" {
-		url, err := totalos.LatestImageURL(ctx, arch, client)
+	installation := Installation{
+		Image:     args.Image,
+		Rebooting: args.Reboot,
+	}
+	if installation.Image == "" {
+		url, err := totalos.LatestImageURL(ctx, m.Arch, client)
 		if err != nil {
 			log.Fatal(err)
 		}
-		args.Image = url
+		installation.Image = url
 	}
 	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
 		log.Fatal(err)
@@ -213,22 +217,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := command.InstallImage(srv, args.Image, device, cb); err != nil {
+	installation.Disk.Device = device
+	installation.Disk.SerialNumber = sn
+	if err := command.InstallImage(srv, installation.Image, installation.Disk.Device, cb); err != nil {
 		log.Fatal(err)
-	}
-	installation := Installation{
-		Image: *image,
-		Disk: Disk{
-			Device:       device,
-			SerialNumber: sn,
-		},
-		Rebooting: *rebootFlag,
 	}
 
 	// Report
 	report := Report{
 		Installation: installation,
-		Machine:      machine,
+		Machine:      m,
 	}
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
@@ -236,11 +234,11 @@ func main() {
 	}
 	fmt.Println(string(jsonData))
 
-	if *webhook != "" {
+	if args.Webhook != "" {
 		req, err := http.NewRequestWithContext(
 			ctx,
 			http.MethodPost,
-			*webhook,
+			args.Webhook,
 			bytes.NewReader(jsonData),
 		)
 		if err != nil {
