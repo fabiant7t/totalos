@@ -224,7 +224,14 @@ func main() {
 	}
 	installation.StorageDisk = storageDisk
 	if args.FormatStorageDisk {
-		if err := command.FormatExt4(srv, "storage", "61291e61-291e-6129-1e61-291e61291e00", installation.StorageDisk.Device(), cb); err != nil {
+		if err := command.FormatExt4(
+			srv,
+			installation.StorageDisk.Device(),
+			"61291e61-291e-6129-1e61-291e61291e00",
+			"storage",
+			"61291e61-291e-6129-1e61-291e61291e01",
+			cb,
+		); err != nil {
 			log.Fatal(err)
 		}
 	}
