@@ -97,7 +97,7 @@ func FormatXFS(m remotecommand.Machine, device, diskUUID, partLabel, partUUID st
 		&& parted ${DEVICE} --script mklabel gpt \
 		&& sgdisk --disk-guid=%s ${DEVICE} \
 		&& parted ${DEVICE} --script mkpart primary xfs %s %s \
-		&& mkfs.xfs-F -L %s -U %s ${DEVICE}p1
+		&& mkfs.xfs -f -L %s -m uuid=%s ${DEVICE}p1
 	`, device, diskUUID, "0%", "100%", partLabel, partUUID)
 	_, err := remotecommand.Command(m, cmd, cb)
 	return err
