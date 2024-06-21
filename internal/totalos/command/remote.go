@@ -51,7 +51,7 @@ func WipeFileSystemSignatures(m remotecommand.Machine, cb ssh.HostKeyCallback) e
 // Disks returns all disks
 func Disks(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.Disk, error) {
 	cmd := `
-	  lsblk -o NAME,SERIAL,SIZE,TYPE,MODEL --json -b \
+	  lsblk -o NAME,SERIAL,SIZE,TYPE,MODEL,TRAN,WWN --json -b \
 		| jq -r '.blockdevices | map(select(.type == "disk"))'
   `
 	var disks []totalos.Disk

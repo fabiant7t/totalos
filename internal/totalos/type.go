@@ -5,10 +5,13 @@ import "fmt"
 type GigaByte int
 
 type Disk struct {
-	Name   string `json:"name"`
-	Serial string `json:"serial"`
-	Model  string `json:"model"`
-	Size   int    `json:"size"`
+	Model     string `json:"model"`
+	Name      string `json:"name"`
+	Serial    string `json:"serial"`
+	Size      int    `json:"size"`
+	Type      string `json:"type"`
+	Transport string `json:"tran"`
+	WWN       string `json:"wwn"`
 }
 
 func (d *Disk) Device() string {
