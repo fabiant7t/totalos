@@ -78,7 +78,15 @@ func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.Ho
 }
 
 // FormatExt4 formats the full device with one ext4 partition.
+// Sets partition label (default is "storage") and
+// disk UUID (default is "61291e61-291e-6129-1e61-291e61291e00")
 func FormatExt4(m remotecommand.Machine, label, uuid, device string, cb ssh.HostKeyCallback) error {
+	if label == "" {
+		label = "storage"
+	}
+	if uuid == "" {
+		uuid = "61291e61-291e-6129-1e61-291e61291e00"
+	}
 	cmd := fmt.Sprintf(`
 	  export DEVICE=%s \
 		&& wipefs -af ${DEVICE} \
@@ -87,7 +95,6 @@ func FormatExt4(m remotecommand.Machine, label, uuid, device string, cb ssh.Host
 		&& parted ${DEVICE} --script mkpart primary ext4 %s %s \
 		&& mkfs.ext4 -F -L %s ${DEVICE}p1
 	`, device, uuid, "0%", "100%", label)
-	fmt.Println(cmd)
 	_, err := remotecommand.Command(m, cmd, cb)
 	return err
 }
