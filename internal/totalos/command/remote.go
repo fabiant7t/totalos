@@ -77,11 +77,11 @@ func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.Ho
 	return err
 }
 
-// FormatExt4 formats the full device with one ext4 partition.
+// FormatXFS formats the full device with one XFS partition.
 // Sets disk UUID (default is "61291e61-291e-6129-1e61-291e61291e00"),
 // partition label (default is "storage") and
 // partition UUID (default is "61291e61-291e-6129-1e61-291e61291e01").
-func FormatExt4(m remotecommand.Machine, device, diskUUID, partLabel, partUUID string, cb ssh.HostKeyCallback) error {
+func FormatXFS(m remotecommand.Machine, device, diskUUID, partLabel, partUUID string, cb ssh.HostKeyCallback) error {
 	if diskUUID == "" {
 		diskUUID = "61291e61-291e-6129-1e61-291e61291e00"
 	}
@@ -96,8 +96,8 @@ func FormatExt4(m remotecommand.Machine, device, diskUUID, partLabel, partUUID s
 		&& wipefs -af ${DEVICE} \
 		&& parted ${DEVICE} --script mklabel gpt \
 		&& sgdisk --disk-guid=%s ${DEVICE} \
-		&& parted ${DEVICE} --script mkpart primary ext4 %s %s \
-		&& mkfs.ext4 -F -L %s -U %s ${DEVICE}p1
+		&& parted ${DEVICE} --script mkpart primary xfs %s %s \
+		&& mkfs.xfs-F -L %s -U %s ${DEVICE}p1
 	`, device, diskUUID, "0%", "100%", partLabel, partUUID)
 	_, err := remotecommand.Command(m, cmd, cb)
 	return err
