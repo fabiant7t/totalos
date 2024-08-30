@@ -1,3 +1,4 @@
+```
    █████              █████              ████
   ░░███              ░░███              ░░███
   ███████    ██████  ███████    ██████   ░███   ██████   █████
@@ -6,6 +7,7 @@
    ░███ ███░███ ░███  ░███ ███ ███░░███  ░███ ░███ ░███ ░░░░███
    ░░█████ ░░██████   ░░█████ ░░████████ █████░░██████  ██████
     ░░░░░   ░░░░░░     ░░░░░   ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
+```
 
 CLI tool to install Talos linux in maintenance mode on bare metal
 servers that booted either Hetzner's Rescue System or the custom
