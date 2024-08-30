@@ -1,0 +1,11 @@
+NAME="totalos rescue"
+PRETTY_NAME="totalos rescue"
+ID=totalosrescue
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://github.com/fabiant7t/totalos/"
+DOCUMENTATION_URL="https://github.com/fabiant7t/totalos/"
+SUPPORT_URL="https://github.com/fabiant7t/totalos/"
+BUG_REPORT_URL="https://github.com/fabiant7t/totalos/"
+PRIVACY_POLICY_URL="https://github.com/fabiant7t/totalos/"
+LOGO=archlinux-logo
