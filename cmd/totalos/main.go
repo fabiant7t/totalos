@@ -115,6 +115,11 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	// Disk preferences
+	systemDiskPref := &command.DiskPreference{
+		IgnoreUSB: true,
+	}
+	storageDiskPref := &command.DiskPreference{}
 
 	// Machine
 	var mach totalos.Machine
@@ -123,6 +128,11 @@ func main() {
 	g.Go(func() error {
 		arch, err := command.Arch(srv, cb)
 		mach.Arch = arch
+		return err
+	})
+	g.Go(func() error {
+		ethdevname, err := command.EthernetDeviceName(srv, cb)
+		mach.EthernetDeviceName = ethdevname
 		return err
 	})
 	g.Go(func() error {
@@ -203,7 +213,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// Select system disk and write image data on it
-	systemDisk, err := command.SelectSystemDisk(mach.Disks)
+	systemDisk, err := command.SelectSystemDisk(mach.Disks, systemDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -218,7 +228,7 @@ func main() {
 		}
 	}
 	// Select storage disk and format it (if requested)
-	storageDisk, err := command.SelectStorageDisk(mach.Disks, systemDisk)
+	storageDisk, err := command.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}

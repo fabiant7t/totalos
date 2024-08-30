@@ -31,12 +31,13 @@ type CPU struct {
 }
 
 type Machine struct {
-	Arch        string   `json:"arch"`
-	IPv4Network Network  `json:"ipv4_network"`
-	Hostname    string   `json:"hostname"`
-	Disks       []Disk   `json:"disks"`
-	CPU         CPU      `json:"cpu"`
-	Memory      GigaByte `json:"memory_gb"`
-	MAC         string   `json:"mac"`
-	UUID        string   `json:"uuid"`
+	Arch               string   `json:"arch"`
+	IPv4Network        Network  `json:"ipv4_network"`
+	Hostname           string   `json:"hostname"`
+	Disks              []Disk   `json:"disks"`
+	CPU                CPU      `json:"cpu"`
+	Memory             GigaByte `json:"memory_gb"`
+	MAC                string   `json:"mac"`
+	UUID               string   `json:"uuid"`
+	EthernetDeviceName string   `json:"ethernet_device_name"`
 }

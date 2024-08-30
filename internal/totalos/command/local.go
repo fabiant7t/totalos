@@ -7,14 +7,26 @@ import (
 	"github.com/fabiant7t/totalos/internal/totalos"
 )
 
+type DiskPreference struct {
+	IgnoreUSB bool
+}
+
 // SelectSystemDisk takes all disks, sorts them by their serial
 // alphabetically and returns the first one. The result is
 // deterministic.
-func SelectSystemDisk(disks []totalos.Disk) (totalos.Disk, error) {
+func SelectSystemDisk(disks []totalos.Disk, pref *DiskPreference) (totalos.Disk, error) {
+	if pref == nil {
+		pref = &DiskPreference{}
+	}
+
 	var serials []string
 	disksBySerial := make(map[string]totalos.Disk, len(disks))
 
 	for _, disk := range disks {
+		// May ignore USB device
+		if disk.Transport == "usb" && pref.IgnoreUSB {
+			continue
+		}
 		serials = append(serials, disk.Serial)
 		disksBySerial[disk.Serial] = disk
 	}
@@ -28,12 +40,20 @@ func SelectSystemDisk(disks []totalos.Disk) (totalos.Disk, error) {
 
 // SelectStorageDisk finds and returns the biggest available disk which
 // is not the system disk.
-func SelectStorageDisk(disks []totalos.Disk, systemDisk totalos.Disk) (totalos.Disk, error) {
+func SelectStorageDisk(disks []totalos.Disk, systemDisk totalos.Disk, pref *DiskPreference) (totalos.Disk, error) {
+	if pref == nil {
+		pref = &DiskPreference{}
+	}
+
 	var storageDisk totalos.Disk
 
 	for _, disk := range disks {
 		// Ignore system disk
 		if disk.Name == systemDisk.Name {
+			continue
+		}
+		// May ignore USB device
+		if disk.Transport == "usb" && pref.IgnoreUSB {
 			continue
 		}
 		// Take the biggest available disk

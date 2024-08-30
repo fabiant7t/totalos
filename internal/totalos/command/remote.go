@@ -16,7 +16,7 @@ import (
 func Arch(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
 	stdout, err := remotecommand.Command(m, "uname -m", cb)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Remote command Arch failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }
@@ -29,8 +29,10 @@ func SoftwareRAIDNotExists(m remotecommand.Machine, cb ssh.HostKeyCallback) erro
 		&& mdadm --stop /dev/md/* \
 		|| echo Software RAID already missing
 	`
-	_, err := remotecommand.Command(m, cmd, cb)
-	return err
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
+		return fmt.Errorf("Remote command SoftwareRAIDNotExists failed: %w", err)
+	}
+	return nil
 }
 
 // WipeFileSystemSignatures erases all available signatures of all NVMe and SATA drives.
@@ -44,8 +46,10 @@ func WipeFileSystemSignatures(m remotecommand.Machine, cb ssh.HostKeyCallback) e
 		    wipefs -fa ${nvmedisk};
 		done;
   `
-	_, err := remotecommand.Command(m, cmd, cb)
-	return err
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
+		return fmt.Errorf("Remote command WipeFileSystemSignatures failed: %w", err)
+	}
+	return nil
 }
 
 // Disks returns all disks
@@ -57,10 +61,10 @@ func Disks(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.Disk, err
 	var disks []totalos.Disk
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return disks, err
+		return disks, fmt.Errorf("Remote command Disks failed: %w", err)
 	}
 	if err := json.Unmarshal(stdout, &disks); err != nil {
-		return disks, err
+		return disks, fmt.Errorf("Remote command Disks failed: %w", err)
 	}
 	return disks, nil
 }
@@ -73,8 +77,10 @@ func InstallImage(m remotecommand.Machine, isoImageURL, device string, cb ssh.Ho
 		|  xz -d \
 		|  dd of=%s bs=4M \
 		&& sync`, isoImageURL, device)
-	_, err := remotecommand.Command(m, cmd, cb)
-	return err
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
+		return fmt.Errorf("Remote command InstallImage failed: %w", err)
+	}
+	return nil
 }
 
 // FormatXFS formats the full device with one XFS partition.
@@ -97,63 +103,83 @@ func FormatXFS(m remotecommand.Machine, device, diskUUID, partLabel, partUUID st
 		&& parted ${DEVICE} --script mklabel gpt \
 		&& sgdisk --disk-guid=%s ${DEVICE} \
 		&& parted ${DEVICE} --script mkpart primary xfs %s %s \
-		&& mkfs.xfs -f -L %s -m uuid=%s ${DEVICE}p1
+		&& mkfs.xfs -f -L %s -m uuid=%s ${DEVICE}*1
 	`, device, diskUUID, "0%", "100%", partLabel, partUUID)
-	_, err := remotecommand.Command(m, cmd, cb)
-	return err
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
+		return fmt.Errorf("Remote command FormatXFS failed: %w", err)
+	}
+	return nil
 }
 
-// IPv4 address of eth0
-func IPv4(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
+// EthernetDeviceName returns the name of the ethernet device,
+// like eth0 or enp0s31f6 (when kernel is configured to use
+// predictable network interface names).
+func EthernetDeviceName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
 	cmd := `
-	  ip -4 -j a show eth0 \
-		| jq -r '.[0].addr_info[].local'
+		ip -o link show \
+		| awk -F': ' '/: (en|eth)/{print $2; exit}'
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("Remote command EthernetDeviceName failed: %w", err)
+	}
+	return strings.TrimSpace(string(stdout)), nil
+}
+
+// IPv4 address of ethernet device
+func IPv4(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
+	cmd := `
+	  ip -4 -j a show \
+		| jq -r '.[] | select(.ifname | startswith("en") or startswith("eth")) | .addr_info[].local'
+	`
+	stdout, err := remotecommand.Command(m, cmd, cb)
+	if err != nil {
+		return nil, fmt.Errorf("Remote command IPv4 failed: %w", err)
 	}
 	return net.ParseIP(strings.TrimSpace(string(stdout))), nil
 }
 
-// IPv4Netmask returns the IPv4 netmask of eth0
+// IPv4Netmask returns the IPv4 netmask of ethernet device
 func IPv4Netmask(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
 	cmd := `
-	  ip -4 -j a show eth0 \
-		| jq -r '.[0].addr_info[].prefixlen'
+	  ip -4 -j a show \
+		| jq -r '.[] | select(.ifname | startswith("en") or startswith("eth")) | .addr_info[].prefixlen'
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Remote command IPv4Netmask failed: %w", err)
 	}
 	prefixlen, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 32)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Remote command IPv4Netmask failed: %w", err)
 	}
 	mask := net.CIDRMask(int(prefixlen), 32)
 	return net.IPv4(mask[0], mask[1], mask[2], mask[3]), nil
 }
 
-// IPv4Gateway returns the default gateway IPv4 of eth0
+// IPv4Gateway returns the default gateway IPv4 of ethernet device
 func IPv4Gateway(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
 	cmd := `
 		ip -j -4 route show \
-		| jq -r '.[] | select(.dev == "eth0" and .dst == "default") | .gateway'
+		| jq -r '.[] | select(.dev | startswith("en") or startswith("eth")) | select(.dst == "default") | .gateway'
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Remote command IPv4Gateway failed: %w", err)
 	}
 	return net.ParseIP(strings.TrimSpace(string(stdout))), nil
 }
 
 // MAC returns the address of the ethernet interface
 func MAC(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
-	cmd := `ip -j link show eth0 | jq -r ".[0].address"`
+	cmd := `
+	  ip -j link show \
+		| jq -r '.[] | select(.ifname | startswith("en") or startswith("eth")) | .address'
+	`
 
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Remote command MAC failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }
@@ -163,12 +189,12 @@ func SystemUUID(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error)
 	cmd := `dmidecode -s system-uuid`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Remote command SystemUUID failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }
 
-// Storage returns a slice with the gigabytes storage per disk
+// Storage returns a slice with the gigabytes of storage per disk
 func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.GigaByte, error) {
 	cmd := `
 	  lsblk -b --json \
@@ -176,13 +202,13 @@ func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]totalos.GigaByt
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return []totalos.GigaByte{}, err
+		return []totalos.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)
 	}
 	var storage []totalos.GigaByte
 	for _, s := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
 		gb, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			return []totalos.GigaByte{}, err
+			return []totalos.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)
 		}
 		storage = append(storage, totalos.GigaByte(gb))
 	}
@@ -199,7 +225,7 @@ func CPUName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Remote command CPUName failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }
@@ -213,11 +239,11 @@ func CPUCores(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command CPUCores failed: %w", err)
 	}
 	count, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command CPUCores failed: %w", err)
 	}
 	return int(count), nil
 }
@@ -231,11 +257,11 @@ func CPUThreads(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command CPUThreads failed: %w", err)
 	}
 	threads, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command CPUThreads failed: %w", err)
 	}
 	return int(threads), nil
 }
@@ -249,11 +275,11 @@ func Memory(m remotecommand.Machine, cb ssh.HostKeyCallback) (totalos.GigaByte, 
 	`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command Memory failed: %w", err)
 	}
 	mem, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("Remote command Memory failed: %w", err)
 	}
 	return totalos.GigaByte(mem), nil
 }
@@ -281,6 +307,8 @@ func SetConfigURL(m remotecommand.Machine, configURL, device string, cb ssh.Host
 		> /mnt/grub/grub.cfg \
 		&& umount /mnt
 	`, device, replacement)
-	_, err := remotecommand.Command(m, cmd, cb)
-	return err
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
+		return fmt.Errorf("Remote command SetConfigURL failed: %w", err)
+	}
+	return nil
 }
