@@ -18,7 +18,7 @@ This means you must be careful, boot it and install talos right away.
 ```sh
 sudo pacman -S archiso
 sudo mkarchiso -v -w /tmp/totalosrescue rescue
-sudo dd if=out/totalosrescue-2024.08.30-x86_64.iso of=/dev/<usd-device>
+sudo dd if=out/totalosrescue-2024.08.30-x86_64.iso of=/dev/<usb-device>
 sync
 ```
 
