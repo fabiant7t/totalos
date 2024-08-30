@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Copyright (c) 2024 Fabian Topfstedt
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# 
+# lspips (List primary IPs) v1.0.0
+for iface in $(ip -o link show | awk '$9 == "UP" {print $2}' | cut -d':' -f1); do
+  mac_address=$(ip link show "${iface}" | awk '/ether/ {print $2}')
+  ipv4_address=$(ip -4 addr show "${iface}" | awk '/inet / {print $2; exit}' | cut -d/ -f1)
+  [ -z "${ipv4_address}" ] && ipv4_address="(none)"
+  ipv6_address=$(ip -6 addr show "${iface}" | awk '/global/ {print $2; exit}')
+  [ -z "${ipv6_address}" ] && ipv6_address="(none)"
+  echo "Connected Network Interface: ${iface}"
+  echo "  MAC Address: ${mac_address}"
+  echo "  IPv4 Address: ${ipv4_address}"
+  echo "  IPv6 Address: ${ipv6_address}"
+  echo
+done
