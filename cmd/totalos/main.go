@@ -57,7 +57,7 @@ func NewCallArgs() *CallArgs {
 	user := flag.String("user", "root", "name of the user")
 	password := flag.String("password", "", "password of the user (optional)")
 	keyPath := flag.String("key", "", "path to the private key (optional)")
-	image := flag.String("image", "", "URL to raw.xz image (optional)")
+	image := flag.String("image", "", "URL to raw.xz or raw.zst image (optional)")
 	webhook := flag.String(
 		"webhook",
 		"",
