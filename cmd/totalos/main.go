@@ -219,7 +219,7 @@ func main() {
 		log.Fatal(err)
 	}
 	installation.SystemDisk = systemDisk
-	if err := command.InstallImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
+	if err := command.InstallRawImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
 		log.Fatal(err)
 	}
 	// If config is given, set it as talos.config option in grub.cfg
