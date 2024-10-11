@@ -6,6 +6,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+var (
+	ErrEmptyCommand = errors.New("Empty command")
+)
+
 type Machine interface {
 	Addr() string
 	Key() []byte
@@ -16,7 +20,7 @@ type Machine interface {
 func Command(m Machine, cmd string, hostKeyCallback ssh.HostKeyCallback) ([]byte, error) {
 	// Refuse executing empty commands
 	if cmd == "" {
-		return nil, errors.New("Empty command")
+		return nil, ErrEmptyCommand
 	}
 	// hostKeyCallback nil means the host key is not being verified
 	if hostKeyCallback == nil {

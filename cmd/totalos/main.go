@@ -12,11 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabiant7t/totalos/pkg/disk"
+	"github.com/fabiant7t/totalos/pkg/image"
+	"github.com/fabiant7t/totalos/pkg/remotecommand/command"
+	"github.com/fabiant7t/totalos/pkg/server"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/fabiant7t/totalos/internal/totalos"
-	"github.com/fabiant7t/totalos/internal/totalos/command"
 )
 
 var (
@@ -24,17 +25,17 @@ var (
 )
 
 type Installation struct {
-	FormatStorageDisk bool         `json:"format_storage_disk"`
-	Image             string       `json:"image"`
-	Rebooting         bool         `json:"rebooting"`
-	Config            string       `json:"config"`
-	StorageDisk       totalos.Disk `json:"storage_disk"`
-	SystemDisk        totalos.Disk `json:"system_disk"`
+	FormatStorageDisk bool        `json:"format_storage_disk"`
+	Image             string      `json:"image"`
+	Rebooting         bool        `json:"rebooting"`
+	Config            string      `json:"config"`
+	StorageDisk       server.Disk `json:"storage_disk"`
+	SystemDisk        server.Disk `json:"system_disk"`
 }
 
 type Report struct {
-	Installation Installation    `json:"installation"`
-	Machine      totalos.Machine `json:"machine"`
+	Installation Installation   `json:"installation"`
+	Machine      server.Machine `json:"machine"`
 }
 
 type CallArgs struct {
@@ -109,20 +110,20 @@ func main() {
 	// SSH host key callback, key is not being checked.
 	cb := ssh.InsecureIgnoreHostKey()
 	// Define target server
-	srv := totalos.NewServer(args.IP, args.User, args.Port, args.Password, nil)
+	srv := server.New(args.IP, args.User, &server.Args{Port: args.Port, Password: args.Password})
 	if args.KeyPath != "" {
 		if err := srv.SetKeyFromFile(args.KeyPath); err != nil {
 			log.Fatal(err)
 		}
 	}
 	// Disk preferences
-	systemDiskPref := &command.DiskPreference{
+	systemDiskPref := &disk.Preference{
 		IgnoreUSB: true,
 	}
-	storageDiskPref := &command.DiskPreference{}
+	storageDiskPref := &disk.Preference{}
 
 	// Machine
-	var mach totalos.Machine
+	var mach server.Machine
 	var g errgroup.Group
 	g.SetLimit(5)
 	g.Go(func() error {
@@ -199,7 +200,7 @@ func main() {
 	}
 	// If image is not given, query the latest one
 	if installation.Image == "" {
-		url, err := totalos.LatestImageURL(ctx, mach.Arch, client)
+		url, err := image.LatestImageURL(ctx, mach.Arch, client)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -213,7 +214,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// Select system disk and write image data on it
-	systemDisk, err := command.SelectSystemDisk(mach.Disks, systemDiskPref)
+	systemDisk, err := disk.SelectSystemDisk(mach.Disks, systemDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -228,7 +229,7 @@ func main() {
 		}
 	}
 	// Select storage disk and format it (if requested)
-	storageDisk, err := command.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
+	storageDisk, err := disk.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}

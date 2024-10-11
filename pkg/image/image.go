@@ -1,4 +1,4 @@
-package totalos
+package image
 
 import (
 	"context"

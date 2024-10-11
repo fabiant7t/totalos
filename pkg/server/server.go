@@ -1,4 +1,4 @@
-package totalos
+package server
 
 import (
 	"fmt"
@@ -16,16 +16,10 @@ type server struct {
 }
 
 func (s *server) Addr() string {
-	if s.port != 0 {
-		return fmt.Sprintf("%s:%d", s.ip, s.port)
-	}
-	return fmt.Sprintf("%s:22", s.ip)
+	return fmt.Sprintf("%s:%d", s.ip, s.port)
 }
 
 func (s *server) User() string {
-	if s.user == "" {
-		return "root"
-	}
 	return s.user
 }
 
@@ -46,12 +40,25 @@ func (s *server) SetKeyFromFile(path string) error {
 	return nil
 }
 
-func NewServer(ip, user string, port uint16, password string, key []byte) *server {
-	return &server{
+type Args struct {
+	Port     uint16
+	Password string
+	Key      []byte
+}
+
+func New(ip, user string, args *Args) *server {
+	srv := &server{
 		ip:       ip,
 		user:     user,
-		password: password,
-		port:     port,
-		key:      key,
+		password: args.Password,
+		port:     args.Port,
+		key:      args.Key,
 	}
+	if srv.user == "" {
+		srv.user = "root"
+	}
+	if srv.port == 0 {
+		srv.port = 22
+	}
+	return srv
 }

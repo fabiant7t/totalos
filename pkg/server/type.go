@@ -1,4 +1,4 @@
-package totalos
+package server
 
 import "fmt"
 
