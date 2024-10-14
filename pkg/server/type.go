@@ -3,8 +3,8 @@ package server
 import "fmt"
 
 type GigaByte int
-
 type Mbps int
+type MHz int
 
 type Disk struct {
 	Model     string `json:"model"`
@@ -27,9 +27,11 @@ type Network struct {
 }
 
 type CPU struct {
-	Name    string `json:"name"`
-	Cores   int    `json:"cores"`
-	Threads int    `json:"threads"`
+	Name        string `json:"name"`
+	Cores       int    `json:"cores"`
+	CoreFreqMin MHz    `json:"core_freq_min_mhz"`
+	CoreFreqMax MHz    `json:"core_freq_max_mhz"`
+	Threads     int    `json:"threads"`
 }
 
 type Ethernet struct {

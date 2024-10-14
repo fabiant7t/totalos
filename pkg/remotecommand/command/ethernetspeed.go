@@ -17,11 +17,11 @@ func EthernetSpeed(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.Mbps
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return server.Mbps(0), fmt.Errorf("Remote command EthernetSpeed failed: %w", err)
+		return 0, fmt.Errorf("Remote command EthernetSpeed failed: %w", err)
 	}
 	mbps_int, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return server.Mbps(0), fmt.Errorf("Remote command EthernetSpeed failed converting value: %w", err)
+		return 0, fmt.Errorf("Remote command EthernetSpeed failed converting value: %w", err)
 	}
 	return server.Mbps(mbps_int), nil
 }

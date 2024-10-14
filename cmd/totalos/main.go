@@ -183,6 +183,16 @@ func main() {
 		return err
 	})
 	g.Go(func() error {
+		cpuCoreFreqMin, err := command.CPUCoreFreqMin(srv, cb)
+		mach.CPU.CoreFreqMin = cpuCoreFreqMin
+		return err
+	})
+	g.Go(func() error {
+		cpuCoreFreqMax, err := command.CPUCoreFreqMax(srv, cb)
+		mach.CPU.CoreFreqMax = cpuCoreFreqMax
+		return err
+	})
+	g.Go(func() error {
 		memory, err := command.Memory(srv, cb)
 		mach.Memory = memory
 		return err

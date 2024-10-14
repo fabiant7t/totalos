@@ -1,4 +1,4 @@
-package command // CPUCores returns the amount of real CPU cores
+package command
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// CPUCores returns the amount of real CPU cores
 func CPUCores(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
 	cmd := `
     dmidecode -t processor \
