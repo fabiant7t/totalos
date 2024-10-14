@@ -133,7 +133,12 @@ func main() {
 	})
 	g.Go(func() error {
 		ethdevname, err := command.EthernetDeviceName(srv, cb)
-		mach.EthernetDeviceName = ethdevname
+		mach.Ethernet.Device = ethdevname
+		return err
+	})
+	g.Go(func() error {
+		ethspeed, err := command.EthernetSpeed(srv, cb)
+		mach.Ethernet.Speed = ethspeed
 		return err
 	})
 	g.Go(func() error {
@@ -154,7 +159,7 @@ func main() {
 	})
 	g.Go(func() error {
 		mac, err := command.MAC(srv, cb)
-		mach.MAC = mac
+		mach.Ethernet.MAC = mac
 		return err
 	})
 	g.Go(func() error {

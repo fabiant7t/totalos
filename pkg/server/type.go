@@ -4,6 +4,8 @@ import "fmt"
 
 type GigaByte int
 
+type Mbps int
+
 type Disk struct {
 	Model     string `json:"model"`
 	Name      string `json:"name"`
@@ -30,14 +32,19 @@ type CPU struct {
 	Threads int    `json:"threads"`
 }
 
+type Ethernet struct {
+	Device string `json:"device"`
+	MAC    string `json:"mac"`
+	Speed  Mbps   `json:"speed_mbps"`
+}
+
 type Machine struct {
-	Arch               string   `json:"arch"`
-	IPv4Network        Network  `json:"ipv4_network"`
-	Hostname           string   `json:"hostname"`
-	Disks              []Disk   `json:"disks"`
-	CPU                CPU      `json:"cpu"`
-	Memory             GigaByte `json:"memory_gb"`
-	MAC                string   `json:"mac"`
-	UUID               string   `json:"uuid"`
-	EthernetDeviceName string   `json:"ethernet_device_name"`
+	Arch        string   `json:"arch"`
+	IPv4Network Network  `json:"ipv4_network"`
+	Hostname    string   `json:"hostname"`
+	Disks       []Disk   `json:"disks"`
+	CPU         CPU      `json:"cpu"`
+	Memory      GigaByte `json:"memory_gb"`
+	UUID        string   `json:"uuid"`
+	Ethernet    Ethernet `json:"ethernet"`
 }
