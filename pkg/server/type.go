@@ -40,13 +40,18 @@ type Ethernet struct {
 	Speed  Mbps   `json:"speed_mbps"`
 }
 
+type Memory struct {
+	Size    GigaByte `json:"size_gb"`
+	Modules []string `json:"modules"`
+}
+
 type Machine struct {
 	Arch        string   `json:"arch"`
 	IPv4Network Network  `json:"ipv4_network"`
 	Hostname    string   `json:"hostname"`
 	Disks       []Disk   `json:"disks"`
 	CPU         CPU      `json:"cpu"`
-	Memory      GigaByte `json:"memory_gb"`
+	Memory      Memory   `json:"memory"`
 	UUID        string   `json:"uuid"`
 	Ethernet    Ethernet `json:"ethernet"`
 }

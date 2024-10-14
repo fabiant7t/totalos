@@ -193,8 +193,13 @@ func main() {
 		return err
 	})
 	g.Go(func() error {
-		memory, err := command.Memory(srv, cb)
-		mach.Memory = memory
+		size, err := command.Memory(srv, cb)
+		mach.Memory.Size = size
+		return err
+	})
+	g.Go(func() error {
+		modules, err := command.MemoryModules(srv, cb)
+		mach.Memory.Modules = modules
 		return err
 	})
 	g.Go(func() error {
