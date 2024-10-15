@@ -22,7 +22,7 @@ func CPUCoreFreqMax(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.MHz
 	if err != nil {
 		return 0, fmt.Errorf("Remote command CPUCoreFreqMax failed: %w", err)
 	}
-	freq, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	freq, err := strconv.ParseFloat(strings.TrimSpace(string(stdout)), 64)
 	if err != nil {
 		return 0, fmt.Errorf("Remote command CPUCoreFreqMax failed: %w", err)
 	}
