@@ -45,6 +45,16 @@ type Memory struct {
 	Modules []string `json:"modules"`
 }
 
+type System struct {
+	Manufacturer string `json:"manufacturer"`
+	ProductName  string `json:"product_name"`
+	Version      string `json:"version"`
+	Family       string `json:"family"`
+	UUID         string `json:"uuid"`
+	SerialNumber string `json:"serial_number"`
+	SKUNumber    string `json:"sku_number"`
+}
+
 type Machine struct {
 	Arch        string   `json:"arch"`
 	IPv4Network Network  `json:"ipv4_network"`
@@ -52,6 +62,6 @@ type Machine struct {
 	Disks       []Disk   `json:"disks"`
 	CPU         CPU      `json:"cpu"`
 	Memory      Memory   `json:"memory"`
-	UUID        string   `json:"uuid"`
+	System      System   `json:"system"`
 	Ethernet    Ethernet `json:"ethernet"`
 }

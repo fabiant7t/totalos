@@ -163,8 +163,38 @@ func main() {
 		return err
 	})
 	g.Go(func() error {
+		manu, err := command.SystemManufacturer(srv, cb)
+		mach.System.Manufacturer = manu
+		return err
+	})
+	g.Go(func() error {
+		prodName, err := command.SystemProductName(srv, cb)
+		mach.System.ProductName = prodName
+		return err
+	})
+	g.Go(func() error {
+		ver, err := command.SystemVersion(srv, cb)
+		mach.System.ProductName = ver
+		return err
+	})
+	g.Go(func() error {
+		fam, err := command.SystemFamily(srv, cb)
+		mach.System.Family = fam
+		return err
+	})
+	g.Go(func() error {
+		sn, err := command.SystemSerialNumber(srv, cb)
+		mach.System.SerialNumber = sn
+		return err
+	})
+	g.Go(func() error {
+		sku, err := command.SystemSKUNumber(srv, cb)
+		mach.System.SKUNumber = sku
+		return err
+	})
+	g.Go(func() error {
 		uuid, err := command.SystemUUID(srv, cb)
-		mach.UUID = uuid
+		mach.System.UUID = uuid
 		return err
 	})
 	g.Go(func() error {
