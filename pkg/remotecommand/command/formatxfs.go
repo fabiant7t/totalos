@@ -35,7 +35,7 @@ func FormatXFS(m remotecommand.Machine, device, diskUUID, partLabel, partUUID st
     && parted ${DEVICE} --script mkpart primary xfs %s %s \
     && mkfs.xfs -f -L %s -m uuid=%s ${PARTITION}
   `, device, part, diskUUID, "0%", "100%", partLabel, partUUID)
-	if _, err := remotecommand.Command(m, cmd, cb); err == nil {
+	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
 		return fmt.Errorf("Remote command FormatXFS failed: %w", err)
 	}
 	return nil
