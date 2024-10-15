@@ -244,9 +244,11 @@ func main() {
 	}
 	// If config is given, set it as talos.config option in grub.cfg
 	if args.Config != "" {
-		if err := command.SetConfigURL(srv, args.Config, installation.SystemDisk.Device(), cb); err != nil {
+		configThatGotSet, err := command.SetConfigURL(srv, args.Config, installation.SystemDisk.Device(), cb)
+		if err != nil {
 			log.Fatal(err)
 		}
+		installation.Config = configThatGotSet
 	}
 	// Select storage disk and format it (if requested)
 	storageDisk, err := disk.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
