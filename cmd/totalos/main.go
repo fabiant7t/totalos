@@ -14,6 +14,7 @@ import (
 
 	"github.com/fabiant7t/totalos/pkg/disk"
 	"github.com/fabiant7t/totalos/pkg/image"
+	"github.com/fabiant7t/totalos/pkg/installation"
 	"github.com/fabiant7t/totalos/pkg/remotecommand/command"
 	"github.com/fabiant7t/totalos/pkg/server"
 	"golang.org/x/crypto/ssh"
@@ -23,20 +24,6 @@ import (
 var (
 	version = "dev" // default version, redacted when building
 )
-
-type Installation struct {
-	FormatStorageDisk bool        `json:"format_storage_disk"`
-	Image             string      `json:"image"`
-	Rebooting         bool        `json:"rebooting"`
-	Config            string      `json:"config"`
-	StorageDisk       server.Disk `json:"storage_disk"`
-	SystemDisk        server.Disk `json:"system_disk"`
-}
-
-type Report struct {
-	Installation Installation   `json:"installation"`
-	Machine      server.Machine `json:"machine"`
-}
 
 type CallArgs struct {
 	IP                string
@@ -242,19 +229,19 @@ func main() {
 	}
 
 	// Installation
-	installation := Installation{
+	inst := installation.Installation{
 		Image:             args.Image,
 		Rebooting:         args.Reboot,
 		FormatStorageDisk: args.FormatStorageDisk,
 		Config:            args.Config,
 	}
 	// If image is not given, query the latest one
-	if installation.Image == "" {
+	if inst.Image == "" {
 		url, err := image.LatestImageURL(ctx, mach.Arch, client)
 		if err != nil {
 			log.Fatal(err)
 		}
-		installation.Image = url
+		inst.Image = url
 	}
 	// Reset disks
 	if err := command.SoftwareRAIDNotExists(srv, cb); err != nil {
@@ -268,28 +255,28 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	installation.SystemDisk = systemDisk
-	if err := command.InstallRawImage(srv, installation.Image, installation.SystemDisk.Device(), cb); err != nil {
+	inst.SystemDisk = systemDisk
+	if err := command.InstallRawImage(srv, inst.Image, inst.SystemDisk.Device(), cb); err != nil {
 		log.Fatal(err)
 	}
 	// If config is given, set it as talos.config option in grub.cfg
 	if args.Config != "" {
-		configThatGotSet, err := command.SetConfigURL(srv, args.Config, installation.SystemDisk.Device(), cb)
+		configThatGotSet, err := command.SetConfigURL(srv, args.Config, inst.SystemDisk.Device(), cb)
 		if err != nil {
 			log.Fatal(err)
 		}
-		installation.Config = configThatGotSet
+		inst.Config = configThatGotSet
 	}
 	// Select storage disk and format it (if requested)
 	storageDisk, err := disk.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}
-	installation.StorageDisk = storageDisk
+	inst.StorageDisk = storageDisk
 	if args.FormatStorageDisk {
 		if err := command.FormatXFS(
 			srv,
-			installation.StorageDisk.Device(),
+			inst.StorageDisk.Device(),
 			"61291e61-291e-6129-1e61-291e61291e00",
 			"storage",
 			"61291e61-291e-6129-1e61-291e61291e01",
@@ -299,8 +286,8 @@ func main() {
 		}
 	}
 	// Create report and print it to stdout
-	report := Report{
-		Installation: installation,
+	report := installation.Report{
+		Installation: inst,
 		Machine:      mach,
 	}
 	jsonData, err := json.MarshalIndent(report, "", "  ")
