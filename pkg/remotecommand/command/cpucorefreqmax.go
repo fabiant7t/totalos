@@ -14,7 +14,7 @@ import (
 func CPUCoreFreqMax(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.MHz, error) {
 	cmd := `
     lscpu -e+MHZ -J \
-    | jq '.cpus[].maxmhz' \
+    | jq -r '.cpus[].maxmhz' \
     | sort -nu \
     | tail -n 1
   `

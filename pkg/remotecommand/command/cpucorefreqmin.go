@@ -14,7 +14,7 @@ import (
 func CPUCoreFreqMin(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.MHz, error) {
 	cmd := `
     lscpu -e+MHZ -J \
-    | jq '.cpus[].minmhz' \
+    | jq -r '.cpus[].minmhz' \
     | sort -nu \
     | head -n 1
   `
