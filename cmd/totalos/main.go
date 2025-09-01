@@ -26,16 +26,15 @@ var (
 )
 
 type CallArgs struct {
-	IP                string
-	Port              uint16
-	User              string
-	Password          string
-	KeyPath           string
-	Image             string
-	Webhook           string
-	Config            string
-	Reboot            bool
-	FormatStorageDisk bool
+	IP       string
+	Port     uint16
+	User     string
+	Password string
+	KeyPath  string
+	Image    string
+	Webhook  string
+	Config   string
+	Reboot   bool
 }
 
 func NewCallArgs() *CallArgs {
@@ -53,7 +52,6 @@ func NewCallArgs() *CallArgs {
 	config := flag.String("config", "", "URL at which the machine configuration data may be found (optional)")
 	versionFlag := flag.Bool("version", false, "prints the version")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
-	formatStorageDiskFlag := flag.Bool("format-storage-disk", false, "format storage disk (optional)")
 
 	flag.Parse()
 
@@ -72,16 +70,15 @@ func NewCallArgs() *CallArgs {
 		os.Exit(1)
 	}
 	return &CallArgs{
-		IP:                *ip,
-		Port:              uint16(*port),
-		User:              *user,
-		Password:          *password,
-		KeyPath:           *keyPath,
-		Image:             *image,
-		Webhook:           *webhook,
-		Config:            *config,
-		Reboot:            *rebootFlag,
-		FormatStorageDisk: *formatStorageDiskFlag,
+		IP:       *ip,
+		Port:     uint16(*port),
+		User:     *user,
+		Password: *password,
+		KeyPath:  *keyPath,
+		Image:    *image,
+		Webhook:  *webhook,
+		Config:   *config,
+		Reboot:   *rebootFlag,
 	}
 }
 
@@ -230,10 +227,9 @@ func main() {
 
 	// Installation
 	inst := installation.Installation{
-		Image:             args.Image,
-		Rebooting:         args.Reboot,
-		FormatStorageDisk: args.FormatStorageDisk,
-		Config:            args.Config,
+		Image:     args.Image,
+		Rebooting: args.Reboot,
+		Config:    args.Config,
 	}
 	// If image is not given, query the latest one
 	if inst.Image == "" {
@@ -267,24 +263,12 @@ func main() {
 		}
 		inst.Config = configThatGotSet
 	}
-	// Select storage disk and format it (if requested)
+	// Select storage disk
 	storageDisk, err := disk.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
 	if err != nil {
 		log.Fatal(err)
 	}
 	inst.StorageDisk = storageDisk
-	if args.FormatStorageDisk {
-		if err := command.FormatXFS(
-			srv,
-			inst.StorageDisk.Device(),
-			"61291e61-291e-6129-1e61-291e61291e00",
-			"storage",
-			"61291e61-291e-6129-1e61-291e61291e01",
-			cb,
-		); err != nil {
-			log.Fatal(err)
-		}
-	}
 	// Create report and print it to stdout
 	report := installation.Report{
 		Installation: inst,
