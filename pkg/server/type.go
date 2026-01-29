@@ -35,9 +35,25 @@ type CPU struct {
 }
 
 type Ethernet struct {
-	Device string `json:"device"`
-	MAC    string `json:"mac"`
-	Speed  Mbps   `json:"speed_mbps"`
+	Device     string     `json:"device"`
+	MAC        string     `json:"mac"`
+	Speed      Mbps       `json:"speed_mbps"`
+	IDNetNames IDNetNames `json:"id_net_names"`
+}
+
+// IDNetNames define the inputs used by systemd/udev to generate network
+// interface names. Despite being called “predictable”, the resulting names
+// are selected from a hard-coded priority list: some naming schemes are
+// almost always available, while others apply only in specific situations.
+// As a result, the chosen name depends on which identifiers are present
+// on the system at the time.
+// See https://github.com/systemd/systemd/blob/main/src/udev/net/link-config.c#L738
+type IDNetNames struct {
+	FromDatabase string `json:"from_database"`
+	Onboard      string `json:"onboard"`
+	Slot         string `json:"slot"`
+	Path         string `json:"path"`
+	MAC          string `json:"mac"`
 }
 
 type Memory struct {

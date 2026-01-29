@@ -126,6 +126,15 @@ func main() {
 		return err
 	})
 	g.Go(func() error {
+		ethidnetnames, err := command.EthernetIDNetNames(srv, cb)
+		mach.Ethernet.IDNetNames.FromDatabase = ethidnetnames["ID_NET_NAME_FROM_DATABASE"]
+		mach.Ethernet.IDNetNames.Onboard = ethidnetnames["ID_NET_NAME_ONBOARD"]
+		mach.Ethernet.IDNetNames.Slot = ethidnetnames["ID_NET_NAME_SLOT"]
+		mach.Ethernet.IDNetNames.Path = ethidnetnames["ID_NET_NAME_PATH"]
+		mach.Ethernet.IDNetNames.MAC = ethidnetnames["ID_NET_NAME_MAC"]
+		return err
+	})
+	g.Go(func() error {
 		ipv4, err := command.IPv4(srv, cb)
 		mach.IPv4Network.IP = ipv4.String()
 		mach.Hostname = fmt.Sprintf("talos-%s", strings.ReplaceAll(ipv4.String(), ".", "-"))
