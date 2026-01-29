@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -232,6 +233,17 @@ func main() {
 	})
 	if err := g.Wait(); err != nil {
 		log.Fatal(err)
+	}
+
+	// Construct IPv4 CIDR notation for Talos link config.
+	ip := net.ParseIP(mach.IPv4Network.IP).To4()
+	netmask := net.ParseIP(mach.IPv4Network.Netmask).To4()
+	if ip != nil && netmask != nil {
+		mask := net.IPMask(netmask)
+		ones, bits := mask.Size()
+		if bits == 32 { // IPv4
+			mach.IPv4Network.CIDR = fmt.Sprintf("%s/%d", ip.String(), ones)
+		}
 	}
 
 	// Installation

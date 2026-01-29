@@ -23,6 +23,7 @@ func (d *Disk) Device() string {
 type Network struct {
 	IP      string `json:"ip"`
 	Netmask string `json:"netmask"`
+	CIDR    string `json:"cidr"`
 	Gateway string `json:"gateway"`
 }
 
