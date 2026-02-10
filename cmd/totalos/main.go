@@ -16,26 +16,26 @@ import (
 	"github.com/fabiant7t/totalos/pkg/disk"
 	"github.com/fabiant7t/totalos/pkg/image"
 	"github.com/fabiant7t/totalos/pkg/installation"
+	"github.com/fabiant7t/totalos/pkg/kernel"
 	"github.com/fabiant7t/totalos/pkg/remotecommand/command"
 	"github.com/fabiant7t/totalos/pkg/server"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
 )
 
-var (
-	version = "dev" // default version, redacted when building
-)
+var version = "dev" // default version, redacted when building
 
 type CallArgs struct {
-	IP       string
-	Port     uint16
-	User     string
-	Password string
-	KeyPath  string
-	Image    string
-	Webhook  string
-	Config   string
-	Reboot   bool
+	IP                                   string
+	Port                                 uint16
+	User                                 string
+	Password                             string
+	KeyPath                              string
+	Image                                string
+	Webhook                              string
+	Config                               string
+	SetStaticInitialNetworkConfiguration bool
+	Reboot                               bool
 }
 
 func NewCallArgs() *CallArgs {
@@ -52,6 +52,7 @@ func NewCallArgs() *CallArgs {
 	)
 	config := flag.String("config", "", "URL at which the machine configuration data may be found (optional)")
 	versionFlag := flag.Bool("version", false, "prints the version")
+	setStaticInitialNetworkConfigurationFlag := flag.Bool("static", false, "set kernel parameter for static initial network configuration")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
 
 	flag.Parse()
@@ -71,15 +72,16 @@ func NewCallArgs() *CallArgs {
 		os.Exit(1)
 	}
 	return &CallArgs{
-		IP:       *ip,
-		Port:     uint16(*port),
-		User:     *user,
-		Password: *password,
-		KeyPath:  *keyPath,
-		Image:    *image,
-		Webhook:  *webhook,
-		Config:   *config,
-		Reboot:   *rebootFlag,
+		IP:                                   *ip,
+		Port:                                 uint16(*port),
+		User:                                 *user,
+		Password:                             *password,
+		KeyPath:                              *keyPath,
+		Image:                                *image,
+		Webhook:                              *webhook,
+		Config:                               *config,
+		SetStaticInitialNetworkConfiguration: *setStaticInitialNetworkConfigurationFlag,
+		Reboot:                               *rebootFlag,
 	}
 }
 
@@ -283,6 +285,28 @@ func main() {
 			log.Fatal(err)
 		}
 		inst.Config = configThatGotSet
+	}
+	// Static network config for maintenance mode (util machine config is applied)
+	if args.SetStaticInitialNetworkConfiguration {
+		ifaceName := mach.Ethernet.IDNetNames.InterfaceName()
+		if ifaceName == "" {
+			log.Fatal("cannot determine name for ethernet interface")
+		}
+		ipOpt := &kernel.IPOptionStaticV4{
+			ClientIP:  mach.IPv4Network.IP,
+			GatewayIP: mach.IPv4Network.Gateway,
+			Netmask:   mach.IPv4Network.Netmask,
+			Hostname:  strings.ReplaceAll(mach.IPv4Network.IP, ".", "-"),
+			Device:    ifaceName,
+			DNS0IP:    "86.54.11.100",  // DNS4EU
+			DNS1IP:    "9.9.9.9",       // quad9
+			NTP0IP:    "162.159.200.1", // Cloudflare
+		}
+		ipOptThatGotSet, err := command.SetIPOptionStaticV4(srv, ipOpt, inst.SystemDisk.Device(), cb)
+		if err != nil {
+			log.Fatal(err)
+		}
+		inst.StaticInitialNetworkConfiguration = ipOptThatGotSet
 	}
 	// Select storage disk
 	storageDisk, err := disk.SelectStorageDisk(mach.Disks, systemDisk, storageDiskPref)
