@@ -2,9 +2,11 @@ package server
 
 import "fmt"
 
-type GigaByte int
-type Mbps int
-type MHz int
+type (
+	GigaByte int
+	Mbps     int
+	MHz      int
+)
 
 type Disk struct {
 	Model     string `json:"model"`
@@ -55,6 +57,20 @@ type IDNetNames struct {
 	Slot         string `json:"slot"`
 	Path         string `json:"path"`
 	MAC          string `json:"mac"`
+}
+
+// InterfaceName returns the interface name that Talos picks when predictable
+// naming is not disabled.
+// Might return empty string when there are no interface names to choose from,
+// which must be checked for.
+// See https://docs.siderolabs.com/talos/v1.12/networking/predictable-interface-names
+func (idnn *IDNetNames) InterfaceName() string {
+	for _, name := range []string{idnn.Onboard, idnn.Slot, idnn.Path, idnn.MAC} {
+		if name != "" {
+			return name
+		}
+	}
+	return ""
 }
 
 type Memory struct {
