@@ -286,11 +286,31 @@ func main() {
 		}
 		inst.Config = configThatGotSet
 	}
+	// Domain name servers (IPv4)
+	if resolvers, err := command.ResolvectlDNSv4(srv, cb); err == nil && len(resolvers) > 0 {
+		mach.IPv4Network.ResolversV4 = resolvers
+	} else if resolvers, err := command.ResolveconfDNSv4(srv, cb); err == nil {
+		mach.IPv4Network.ResolversV4 = resolvers
+	}
+	// Domain name servers (IPv6)
+	if resolvers, err := command.ResolvectlDNSv6(srv, cb); err == nil && len(resolvers) > 0 {
+		mach.IPv4Network.ResolversV6 = resolvers
+	} else if resolvers, err := command.ResolveconfDNSv6(srv, cb); err == nil {
+		mach.IPv4Network.ResolversV6 = resolvers
+	}
 	// Static network config for maintenance mode (util machine config is applied)
 	if args.SetStaticInitialNetworkConfiguration {
 		ifaceName := mach.Ethernet.IDNetNames.InterfaceName()
 		if ifaceName == "" {
 			log.Fatal("cannot determine name for ethernet interface")
+		}
+		dns0 := "1.1.1.1" // Cloudflare as fallback
+		if resolvers := mach.IPv4Network.ResolversV4; len(resolvers) > 0 {
+			dns0 = resolvers[0]
+		}
+		dns1 := "8.8.8.8" // Google as fallback
+		if resolvers := mach.IPv4Network.ResolversV4; len(resolvers) > 1 {
+			dns1 = resolvers[1]
 		}
 		ipOpt := &kernel.IPOptionStaticV4{
 			ClientIP:  mach.IPv4Network.IP,
@@ -298,8 +318,8 @@ func main() {
 			Netmask:   mach.IPv4Network.Netmask,
 			Hostname:  strings.ReplaceAll(mach.IPv4Network.IP, ".", "-"),
 			Device:    ifaceName,
-			DNS0IP:    "86.54.11.100",  // DNS4EU
-			DNS1IP:    "9.9.9.9",       // quad9
+			DNS0IP:    dns0,
+			DNS1IP:    dns1,
 			NTP0IP:    "162.159.200.1", // Cloudflare
 		}
 		ipOptThatGotSet, err := command.SetIPOptionStaticV4(srv, ipOpt, inst.SystemDisk.Device(), cb)

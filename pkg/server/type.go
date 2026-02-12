@@ -23,10 +23,12 @@ func (d *Disk) Device() string {
 }
 
 type Network struct {
-	IP      string `json:"ip"`
-	Netmask string `json:"netmask"`
-	CIDR    string `json:"cidr"`
-	Gateway string `json:"gateway"`
+	IP          string   `json:"ip"`
+	Netmask     string   `json:"netmask"`
+	CIDR        string   `json:"cidr"`
+	Gateway     string   `json:"gateway"`
+	ResolversV4 []string `json:"resolvers_v4"`
+	ResolversV6 []string `json:"resolvers_v6"`
 }
 
 type CPU struct {
