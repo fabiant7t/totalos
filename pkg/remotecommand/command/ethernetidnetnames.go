@@ -20,7 +20,7 @@ func EthernetIDNetNames(m remotecommand.Machine, cb ssh.HostKeyCallback) (map[st
 	if err != nil {
 		return names, fmt.Errorf("Remote command EthernetIDNetNames failed: %w", err)
 	}
-	for _, line := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(stdout)), "\n") {
 		k, v, ok := strings.Cut(line, "=")
 		if !ok {
 			continue

@@ -21,7 +21,7 @@ func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]server.GigaByte
 		return []server.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)
 	}
 	var storage []server.GigaByte
-	for _, s := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
+	for s := range strings.SplitSeq(strings.TrimSpace(string(stdout)), "\n") {
 		gb, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return []server.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)

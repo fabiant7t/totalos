@@ -26,7 +26,7 @@ func ResolvectlDNSv6(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]string,
 // stdout should contain space separated IPs as a byte slice
 func parsePublicIPv6sFromResolvectl(stdout []byte) []string {
 	var resolvers []string
-	for _, tok := range strings.Split(string(stdout), " ") {
+	for tok := range strings.SplitSeq(string(stdout), " ") {
 		addr, err := netip.ParseAddr(strings.TrimSpace(tok))
 		if err == nil && addr.Is6() && !addr.IsPrivate() && !addr.IsLoopback() {
 			resolvers = append(resolvers, addr.String())
