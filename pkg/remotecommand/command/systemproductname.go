@@ -13,7 +13,7 @@ func SystemProductName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string,
 	cmd := `dmidecode -s system-product-name`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemProductName failed: %w", err)
+		return "", fmt.Errorf("remote command SystemProductName failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

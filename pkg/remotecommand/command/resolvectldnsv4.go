@@ -18,7 +18,7 @@ func ResolvectlDNSv4(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]string,
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, fmt.Errorf("Remote command ResolvectlDNS failed: %w", err)
+		return nil, fmt.Errorf("remote command ResolvectlDNS failed: %w", err)
 	}
 	return parsePublicIPv4sFromResolvectl(stdout), nil
 }

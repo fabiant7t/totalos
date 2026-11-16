@@ -18,7 +18,7 @@ func EthernetDeviceName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command EthernetDeviceName failed: %w", err)
+		return "", fmt.Errorf("remote command EthernetDeviceName failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

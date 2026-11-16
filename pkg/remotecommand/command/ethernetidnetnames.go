@@ -18,7 +18,7 @@ func EthernetIDNetNames(m remotecommand.Machine, cb ssh.HostKeyCallback) (map[st
 	names := make(map[string]string)
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return names, fmt.Errorf("Remote command EthernetIDNetNames failed: %w", err)
+		return names, fmt.Errorf("remote command EthernetIDNetNames failed: %w", err)
 	}
 	for line := range strings.SplitSeq(strings.TrimSpace(string(stdout)), "\n") {
 		k, v, ok := strings.Cut(line, "=")

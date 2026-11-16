@@ -13,7 +13,7 @@ func SystemSKUNumber(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, e
 	cmd := `dmidecode -s system-sku-number`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemSKUNumber failed: %w", err)
+		return "", fmt.Errorf("remote command SystemSKUNumber failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

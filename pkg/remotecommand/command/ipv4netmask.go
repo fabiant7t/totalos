@@ -18,11 +18,11 @@ func IPv4Netmask(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, fmt.Errorf("Remote command IPv4Netmask failed: %w", err)
+		return nil, fmt.Errorf("remote command IPv4Netmask failed: %w", err)
 	}
 	prefixlen, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("Remote command IPv4Netmask failed: %w", err)
+		return nil, fmt.Errorf("remote command IPv4Netmask failed: %w", err)
 	}
 	mask := net.CIDRMask(int(prefixlen), 32)
 	return net.IPv4(mask[0], mask[1], mask[2], mask[3]), nil

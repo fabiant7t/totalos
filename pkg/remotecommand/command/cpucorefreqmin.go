@@ -20,11 +20,11 @@ func CPUCoreFreqMin(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.MHz
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUCoreFreqMin failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUCoreFreqMin failed: %w", err)
 	}
 	freq, err := strconv.ParseFloat(strings.TrimSpace(string(stdout)), 64)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUCoreFreqMin failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUCoreFreqMin failed: %w", err)
 	}
 	return server.MHz(freq), nil
 }

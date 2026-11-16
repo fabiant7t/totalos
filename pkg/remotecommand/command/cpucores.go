@@ -18,11 +18,11 @@ func CPUCores(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUCores failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUCores failed: %w", err)
 	}
 	count, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUCores failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUCores failed: %w", err)
 	}
 	return int(count), nil
 }

@@ -13,7 +13,7 @@ func SystemVersion(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, err
 	cmd := `dmidecode -s system-version`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemVersion failed: %w", err)
+		return "", fmt.Errorf("remote command SystemVersion failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

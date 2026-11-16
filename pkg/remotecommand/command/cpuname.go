@@ -18,7 +18,7 @@ func CPUName(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command CPUName failed: %w", err)
+		return "", fmt.Errorf("remote command CPUName failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

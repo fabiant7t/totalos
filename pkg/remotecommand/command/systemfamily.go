@@ -13,7 +13,7 @@ func SystemFamily(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, erro
 	cmd := `dmidecode -s system-family`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemFamily failed: %w", err)
+		return "", fmt.Errorf("remote command SystemFamily failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

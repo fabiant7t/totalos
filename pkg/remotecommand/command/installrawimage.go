@@ -37,7 +37,7 @@ func installRawImageXZ(m remotecommand.Machine, imageURL, device string, cb ssh.
     |  dd of=%s bs=4M \
     && sync`, imageURL, device)
 	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
-		return fmt.Errorf("Remote command InstallImage failed: %w", err)
+		return fmt.Errorf("remote command InstallImage failed: %w", err)
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func installImageZstandard(m remotecommand.Machine, imageURL, device string, cb 
     |  dd of=%s bs=4M \
     && sync`, imageURL, device)
 	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
-		return fmt.Errorf("Remote command InstallImage failed: %w", err)
+		return fmt.Errorf("remote command InstallImage failed: %w", err)
 	}
 	return nil
 }
@@ -63,7 +63,7 @@ func installISOImage(m remotecommand.Machine, imageURL, device string, cb ssh.Ho
     && dd if=talos-metal.iso of=%s bs=4M \
     && sync`, imageURL, device)
 	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
-		return fmt.Errorf("Remote command InstallImage failed: %w", err)
+		return fmt.Errorf("remote command InstallImage failed: %w", err)
 	}
 	return nil
 }

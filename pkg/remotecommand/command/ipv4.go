@@ -17,7 +17,7 @@ func IPv4(m remotecommand.Machine, cb ssh.HostKeyCallback) (net.IP, error) {
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return nil, fmt.Errorf("Remote command IPv4 failed: %w", err)
+		return nil, fmt.Errorf("remote command IPv4 failed: %w", err)
 	}
 	return net.ParseIP(strings.TrimSpace(string(stdout))), nil
 }

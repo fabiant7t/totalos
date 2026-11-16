@@ -13,7 +13,7 @@ func SystemManufacturer(m remotecommand.Machine, cb ssh.HostKeyCallback) (string
 	cmd := `dmidecode -s system-manufacturer`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemManufacturer failed: %w", err)
+		return "", fmt.Errorf("remote command SystemManufacturer failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

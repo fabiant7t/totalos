@@ -16,7 +16,7 @@ func SoftwareRAIDNotExists(m remotecommand.Machine, cb ssh.HostKeyCallback) erro
     || echo Software RAID already missing
   `
 	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
-		return fmt.Errorf("Remote command SoftwareRAIDNotExists failed: %w", err)
+		return fmt.Errorf("remote command SoftwareRAIDNotExists failed: %w", err)
 	}
 	return nil
 }

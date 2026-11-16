@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrEmptyCommand = errors.New("Empty command")
+	ErrEmptyCommand = errors.New("empty command")
 )
 
 type Machine interface {

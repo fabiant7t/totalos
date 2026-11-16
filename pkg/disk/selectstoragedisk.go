@@ -30,7 +30,7 @@ func SelectStorageDisk(disks []server.Disk, systemDisk server.Disk, pref *Prefer
 		}
 	}
 	if storageDisk.Size == 0 {
-		return storageDisk, errors.New("Cannot select storage disk")
+		return storageDisk, errors.New("cannot select storage disk")
 	}
 	return storageDisk, nil
 }

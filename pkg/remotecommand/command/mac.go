@@ -17,7 +17,7 @@ func MAC(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
 
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command MAC failed: %w", err)
+		return "", fmt.Errorf("remote command MAC failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

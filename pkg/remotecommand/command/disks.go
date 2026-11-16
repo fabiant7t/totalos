@@ -18,10 +18,10 @@ func Disks(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]server.Disk, erro
 	var disks []server.Disk
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return disks, fmt.Errorf("Remote command Disks failed: %w", err)
+		return disks, fmt.Errorf("remote command Disks failed: %w", err)
 	}
 	if err := json.Unmarshal(stdout, &disks); err != nil {
-		return disks, fmt.Errorf("Remote command Disks failed: %w", err)
+		return disks, fmt.Errorf("remote command Disks failed: %w", err)
 	}
 	return disks, nil
 }

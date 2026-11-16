@@ -31,5 +31,5 @@ func SelectSystemDisk(disks []server.Disk, pref *Preference) (server.Disk, error
 	if len(serials) > 0 {
 		return disksBySerial[serials[0]], nil
 	}
-	return server.Disk{}, errors.New("Cannot select system disk")
+	return server.Disk{}, errors.New("cannot select system disk")
 }

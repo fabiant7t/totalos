@@ -13,7 +13,7 @@ func SystemUUID(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error)
 	cmd := `dmidecode -s system-uuid`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SystemUUID failed: %w", err)
+		return "", fmt.Errorf("remote command SystemUUID failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

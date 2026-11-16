@@ -18,11 +18,11 @@ func CPUThreads(m remotecommand.Machine, cb ssh.HostKeyCallback) (int, error) {
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUThreads failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUThreads failed: %w", err)
 	}
 	threads, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command CPUThreads failed: %w", err)
+		return 0, fmt.Errorf("remote command CPUThreads failed: %w", err)
 	}
 	return int(threads), nil
 }

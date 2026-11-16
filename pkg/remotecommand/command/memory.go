@@ -19,11 +19,11 @@ func Memory(m remotecommand.Machine, cb ssh.HostKeyCallback) (server.GigaByte, e
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command Memory failed: %w", err)
+		return 0, fmt.Errorf("remote command Memory failed: %w", err)
 	}
 	mem, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("Remote command Memory failed: %w", err)
+		return 0, fmt.Errorf("remote command Memory failed: %w", err)
 	}
 	return server.GigaByte(mem), nil
 }

@@ -15,7 +15,7 @@ func MemoryModules(m remotecommand.Machine, cb ssh.HostKeyCallback) (modules []s
 	cmd := `dmidecode -t memory`
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return modules, fmt.Errorf("Remote command MemoryModules failed: %w", err)
+		return modules, fmt.Errorf("remote command MemoryModules failed: %w", err)
 	}
 
 	var inMemoryDevice bool
@@ -63,7 +63,7 @@ func MemoryModules(m remotecommand.Machine, cb ssh.HostKeyCallback) (modules []s
 	}
 	// Any scanner errors?
 	if err := scanner.Err(); err != nil {
-		return modules, fmt.Errorf("Remote command MemoryModules failed: %w", err)
+		return modules, fmt.Errorf("remote command MemoryModules failed: %w", err)
 	}
 
 	for _, md := range memoryDevices {

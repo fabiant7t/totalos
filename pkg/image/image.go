@@ -41,7 +41,7 @@ func LatestImageURL(ctx context.Context, machineHardwareName string, client *htt
 	case "aarch64", "arm64":
 		wantName = "metal-arm64.raw.zst"
 	default:
-		return "", fmt.Errorf("Unknown machine hardware name (architecture: %s)", arch)
+		return "", fmt.Errorf("unknown machine hardware name (architecture: %s)", arch)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -72,5 +72,5 @@ func LatestImageURL(ctx context.Context, machineHardwareName string, client *htt
 			}
 		}
 	}
-	return "", errors.New("Cannot parse latest ISO")
+	return "", errors.New("cannot parse latest ISO")
 }

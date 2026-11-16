@@ -18,13 +18,13 @@ func Storage(m remotecommand.Machine, cb ssh.HostKeyCallback) ([]server.GigaByte
   `
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return []server.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)
+		return []server.GigaByte{}, fmt.Errorf("remote command Storage failed: %w", err)
 	}
 	var storage []server.GigaByte
 	for s := range strings.SplitSeq(strings.TrimSpace(string(stdout)), "\n") {
 		gb, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			return []server.GigaByte{}, fmt.Errorf("Remote command Storage failed: %w", err)
+			return []server.GigaByte{}, fmt.Errorf("remote command Storage failed: %w", err)
 		}
 		storage = append(storage, server.GigaByte(gb))
 	}

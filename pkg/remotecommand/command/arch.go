@@ -12,7 +12,7 @@ import (
 func Arch(m remotecommand.Machine, cb ssh.HostKeyCallback) (string, error) {
 	stdout, err := remotecommand.Command(m, "uname -m", cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command Arch failed: %w", err)
+		return "", fmt.Errorf("remote command Arch failed: %w", err)
 	}
 	return strings.TrimSpace(string(stdout)), nil
 }

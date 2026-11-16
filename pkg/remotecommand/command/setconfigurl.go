@@ -33,7 +33,7 @@ func SetConfigURL(m remotecommand.Machine, configURL, device string, cb ssh.Host
   `, part, replacement)
 	stdout, err := remotecommand.Command(m, cmd, cb)
 	if err != nil {
-		return "", fmt.Errorf("Remote command SetConfigURL failed: %w", err)
+		return "", fmt.Errorf("remote command SetConfigURL failed: %w", err)
 	}
 
 	p := regexp.MustCompile(`talos.config=([^ ]+)`)
