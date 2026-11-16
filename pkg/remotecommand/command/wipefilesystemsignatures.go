@@ -11,15 +11,16 @@ import (
 // It does not shred the data, though!
 func WipeFileSystemSignatures(m remotecommand.Machine, cb ssh.HostKeyCallback) error {
 	cmd := `
-    for satadisk in $(ls /dev/sd*); do
-        wipefs -fa ${satadisk};
-    done;
-    for nvmedisk in $(ls /dev/nvme*n1); do
-        wipefs -fa ${nvmedisk};
-    done;
-  `
+		for disk in $(
+			lsblk --json --tree --paths --output NAME,TYPE,TRAN,PKNAME \
+			| jq -r '.blockdevices[] | select(.type == "disk" and (.tran == "nvme" or .tran == "sata")) | .name'
+		); \
+		do
+			wipefs -fa "${disk}";
+		done;
+	`
 	if _, err := remotecommand.Command(m, cmd, cb); err != nil {
-		return fmt.Errorf("Remote command WipeFileSystemSignatures failed: %w", err)
+		return fmt.Errorf("remote command WipeFileSystemSignatures failed: %w", err)
 	}
 	return nil
 }
