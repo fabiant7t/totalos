@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ import (
 var version = "dev" // default version, redacted when building
 
 type CallArgs struct {
+	LogLevel                             slog.Level
 	IP                                   string
 	Port                                 uint16
 	User                                 string
@@ -41,6 +43,8 @@ type CallArgs struct {
 }
 
 func NewCallArgs() *CallArgs {
+	var logLevel slog.Level
+	flag.TextVar(&logLevel, "loglevel", slog.LevelInfo, "log level: debug, info, warn, error")
 	ip := flag.String("ip", "", "IP of the server")
 	port := flag.Uint("port", 22, "SSH port of the server")
 	user := flag.String("user", "root", "name of the user")
@@ -76,6 +80,7 @@ func NewCallArgs() *CallArgs {
 		os.Exit(1)
 	}
 	return &CallArgs{
+		LogLevel:                             logLevel,
 		IP:                                   *ip,
 		Port:                                 uint16(*port),
 		User:                                 *user,
@@ -94,6 +99,10 @@ func NewCallArgs() *CallArgs {
 func main() {
 	// Parse and validate arguments and populate CallArgs. Might exit early (--version).
 	args := NewCallArgs()
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: args.LogLevel,
+	})))
 
 	// Context with deadline
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
