@@ -107,4 +107,4 @@ Example structure:
 ```
 
 **Rescue System ISO**
-For the custom rescue environment, see `rescuesystem`.
+For the custom rescue environment, see `rescuesystem/README.md`.
