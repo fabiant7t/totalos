@@ -5,6 +5,7 @@
 **This tool is destructive.** It wipes filesystem signatures and writes a disk image with `dd`.
 
 **What It Does**
+
 - Connects via SSH to a rescue-booted server.
 - Collects hardware and network details (CPU, memory, disks, NIC, DMI info, IPv4).
 - Picks a system disk deterministically (lowest serial, ignoring USB) and writes a Talos raw image to it.
@@ -15,27 +16,33 @@
 - Optionally reboots the server.
 
 **How It Chooses the Image**
+
 - If `--image` is provided, it is used as-is.
 - Otherwise, it queries the Talos GitHub releases API and picks the latest non-draft, non-prerelease `metal-*.raw.zst` matching the machine architecture.
 
 **Disk Selection Rules**
+
 - System disk: smallest serial (alphabetical) among non-USB disks.
 - Storage disk: largest non-system disk (USB not excluded here).
 
 **Requirements**
 Remote rescue system must provide:
+
 - `ssh` access as root
 - `lsblk`, `jq`, `dmidecode`, `ip`, `udevadm`, `fdisk`, `mdadm`, `wipefs`, `wget`, `xz` or `zstd`, `dd`, `mount`, `umount`
 
 Local build environment:
+
 - Go toolchain matching `go.mod` (`go1.24.2` toolchain)
 
 **Build**
+
 ```sh
 go build -o totalos ./cmd/totalos
 ```
 
 **Usage**
+
 ```sh
 ./totalos \
   --ip 203.0.113.10 \
@@ -48,6 +55,7 @@ go build -o totalos ./cmd/totalos
 ```
 
 **Flags**
+
 - `--ip` (required) target server IP
 - `--port` SSH port (default `22`)
 - `--user` SSH user (default `root`)
@@ -62,6 +70,7 @@ go build -o totalos ./cmd/totalos
 
 **Static Network Option Details**
 When `--static` is set, the tool builds an `ip=` kernel command-line entry using the current IPv4 address, netmask, gateway, and interface name. It also sets DNS and NTP:
+
 - DNS: `86.54.11.100` (DNS4EU) and `9.9.9.9` (Quad9)
 - NTP: `162.159.200.1` (Cloudflare)
 
@@ -69,6 +78,7 @@ When `--static` is set, the tool builds an `ip=` kernel command-line entry using
 The tool prints a JSON report to stdout and optionally POSTs it to `--webhook`.
 
 Example structure:
+
 ```json
 {
   "installation": {
@@ -82,7 +92,12 @@ Example structure:
   "machine": {
     "arch": "x86_64",
     "hostname": "talos-203-0-113-10",
-    "ipv4_network": { "ip": "203.0.113.10", "netmask": "255.255.255.0", "gateway": "203.0.113.1", "cidr": "203.0.113.10/24" },
+    "ipv4_network": {
+      "ip": "203.0.113.10",
+      "netmask": "255.255.255.0",
+      "gateway": "203.0.113.1",
+      "cidr": "203.0.113.10/24"
+    },
     "cpu": { "name": "...", "cores": 8, "threads": 16 },
     "memory": { "size_gb": 64 },
     "system": { "manufacturer": "...", "product_name": "...", "uuid": "..." },
@@ -91,5 +106,5 @@ Example structure:
 }
 ```
 
-**Rescue ISO**
-For the custom rescue environment, see `rescue/README.md`.
+**Rescue System ISO**
+For the custom rescue environment, see `rescuesystem`.
