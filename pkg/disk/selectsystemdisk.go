@@ -19,8 +19,8 @@ func SelectSystemDisk(disks []server.Disk, pref *Preference) (server.Disk, error
 	disksBySerial := make(map[string]server.Disk, len(disks))
 
 	for _, disk := range disks {
-		// May ignore USB device
-		if disk.Transport == "usb" && pref.IgnoreUSB {
+		// Skip USB devices unless explicitly allowed.
+		if disk.Transport == "usb" && !pref.AllowUSB {
 			continue
 		}
 		serials = append(serials, disk.Serial)

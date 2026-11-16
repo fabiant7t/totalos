@@ -1,5 +1,5 @@
 package disk
 
 type Preference struct {
-	IgnoreUSB bool
+	AllowUSB bool
 }

@@ -36,6 +36,8 @@ type CallArgs struct {
 	Config                               string
 	SetStaticInitialNetworkConfiguration bool
 	Reboot                               bool
+	AllowUSBSystemDisk                   bool
+	AllowUSBStorageDisk                  bool
 }
 
 func NewCallArgs() *CallArgs {
@@ -54,6 +56,8 @@ func NewCallArgs() *CallArgs {
 	versionFlag := flag.Bool("version", false, "prints the version")
 	setStaticInitialNetworkConfigurationFlag := flag.Bool("static", false, "set kernel parameter for static initial network configuration")
 	rebootFlag := flag.Bool("reboot", false, "reboot the server")
+	allowUSBSystemDiskFlag := flag.Bool("allow-usb-system-disk", false, "allow USB disks in system disk selection")
+	allowUSBStorageDiskFlag := flag.Bool("allow-usb-storage-disk", false, "allow USB disks in storage disk selection")
 
 	flag.Parse()
 
@@ -82,6 +86,8 @@ func NewCallArgs() *CallArgs {
 		Config:                               *config,
 		SetStaticInitialNetworkConfiguration: *setStaticInitialNetworkConfigurationFlag,
 		Reboot:                               *rebootFlag,
+		AllowUSBSystemDisk:                   *allowUSBSystemDiskFlag,
+		AllowUSBStorageDisk:                  *allowUSBStorageDiskFlag,
 	}
 }
 
@@ -105,9 +111,11 @@ func main() {
 	}
 	// Disk preferences
 	systemDiskPref := &disk.Preference{
-		IgnoreUSB: true,
+		AllowUSB: args.AllowUSBSystemDisk,
 	}
-	storageDiskPref := &disk.Preference{}
+	storageDiskPref := &disk.Preference{
+		AllowUSB: args.AllowUSBStorageDisk,
+	}
 
 	// Machine
 	var mach server.Machine

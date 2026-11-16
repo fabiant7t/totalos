@@ -20,8 +20,8 @@ func SelectStorageDisk(disks []server.Disk, systemDisk server.Disk, pref *Prefer
 		if disk.Name == systemDisk.Name {
 			continue
 		}
-		// May ignore USB device
-		if disk.Transport == "usb" && pref.IgnoreUSB {
+		// Skip USB devices unless explicitly allowed.
+		if disk.Transport == "usb" && !pref.AllowUSB {
 			continue
 		}
 		// Take the biggest available disk

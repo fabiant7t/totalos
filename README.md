@@ -8,7 +8,7 @@
 
 - Connects via SSH to a rescue-booted server.
 - Collects hardware and network details (CPU, memory, disks, NIC, DMI info, IPv4).
-- Picks a system disk deterministically (lowest serial, ignoring USB) and writes a Talos raw image to it.
+- Picks a system disk deterministically (lowest serial, excluding USB by default) and writes a Talos raw image to it.
 - Optionally injects `talos.config=<url>` into `grub.cfg`.
 - Optionally injects `ip=<...>` static network config into `grub.cfg`.
 - Selects a storage disk (largest non-system disk) for reporting.
@@ -22,8 +22,8 @@
 
 **Disk Selection Rules**
 
-- System disk: smallest serial (alphabetical) among non-USB disks.
-- Storage disk: largest non-system disk (USB not excluded here).
+- System disk: smallest serial (alphabetical), excluding USB disks unless `--allow-usb-system-disk` is set.
+- Storage disk: largest non-system disk, excluding USB disks unless `--allow-usb-storage-disk` is set.
 
 **Requirements**
 Remote rescue system must provide:
@@ -65,6 +65,8 @@ go build -o totalos ./cmd/totalos
 - `--config` URL to Talos machine config (optional, injected as `talos.config=...`)
 - `--webhook` URL to receive JSON report via HTTP POST (optional)
 - `--static` set static initial network configuration (adds `ip=...` kernel option)
+- `--allow-usb-system-disk` allow USB disks in system disk selection (default `false`)
+- `--allow-usb-storage-disk` allow USB disks in storage disk selection (default `false`)
 - `--reboot` reboot server after install
 - `--version` print version and exit
 
